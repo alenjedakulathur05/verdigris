@@ -1,0 +1,246 @@
+@import "tailwindcss";
+
+/* ═══════════════════════════════════════════════════════════════════
+   VERDIGRIS — DESIGN SYSTEM
+   ───────────────────────────────────────────────────────────────────
+   Single source of truth. Tailwind v4 generates its utility classes
+   directly FROM these custom properties, so there is no second config
+   file that can drift out of sync with the design.
+
+   Namespace → generated utility:
+     --color-*      → bg-*, text-*, border-*
+     --font-*       → font-*
+     --text-*       → text-*   (font sizes)
+     --radius-*     → rounded-*
+     --shadow-*     → shadow-*
+     --ease-*       → ease-*
+     --breakpoint-* → sm: md: lg: …
+   ═══════════════════════════════════════════════════════════════════ */
+
+@theme {
+  /* ── Surfaces — "oxidized iron" ──────────────────────────────────
+     None of these are pure black. #000 kills depth, leaves nowhere
+     darker to go, and smears visibly during scroll on OLED phones.
+     Every surface carries a slight green undertone so the greys feel
+     chemically related to the patina rather than neutral-with-a-
+     green-thing-on-top. */
+  --color-void: #070a09;
+  --color-base: #0b0f0e;
+  --color-raised: #121816;
+  --color-overlay: #1a221f;
+  --color-elevated: #222b28;
+
+  /* ── Lines — on near-black these do more work than shadows ─────── */
+  --color-line-subtle: #1e2725;
+  --color-line: #2a3532;
+  --color-line-strong: #3c4844;
+
+  /* ── Text — contrast ratios measured against --color-base ─────────
+     Note --color-ink is NOT pure white: #fff on near-black is ~19:1,
+     which glares and causes halation on large display type. */
+  --color-ink: #e8f0ed; /* 16.0:1  AAA */
+  --color-ink-muted: #a3b3ae; /*  8.5:1  AAA */
+  --color-ink-faint: #7c8d88; /*  4.9:1  AA  */
+  --color-ink-disabled: #4a5854; /* non-essential text only */
+
+  /* ── Verdigris — primary accent, the bioluminescent patina ─────── */
+  --color-patina-100: #d4fbef;
+  --color-patina-300: #7ff0d0;
+  --color-patina-500: #34e0b0; /* core brand — 11:1 on base */
+  --color-patina-600: #17c79a; /* hover */
+  --color-patina-700: #0e9b79; /* borders, subdued */
+  --color-patina-900: #063d31; /* tinted backgrounds */
+
+  /* ── Copper — secondary accent, oxidized brass ──────────────────── */
+  --color-copper-400: #e3a857; /* 8.9:1 */
+  --color-copper-500: #c8873a;
+  --color-copper-600: #a66b28;
+  --color-copper-900: #3a2410;
+
+  /* ── Flare — rare accent. Its power comes from scarcity. ──────────
+     ⚠ white on flare-500 is 3.1:1 and FAILS WCAG AA.
+     Filled flare buttons must use --color-void as the label colour
+     (6.1:1 ✓). This constraint is deliberate, not an oversight. */
+  --color-flare-500: #ff5a3c;
+  --color-flare-600: #e8432a;
+
+  /* ── Typefaces ──────────────────────────────────────────────────── */
+  --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-manrope), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+
+  /* ── Fluid type scale ────────────────────────────────────────────
+     Every size interpolates continuously between a 360px and a
+     1440px viewport. No stepped breakpoints means there is no width
+     at which the typography looks wrong — this is the single biggest
+     contributor to the site feeling genuinely responsive rather than
+     like four hardcoded layouts. */
+  --text-xs: clamp(0.75rem, 0.72rem + 0.15vw, 0.8125rem); /* 12 → 13 */
+  --text-sm: clamp(0.875rem, 0.85rem + 0.15vw, 0.9375rem); /* 14 → 15 */
+  --text-base: clamp(1rem, 0.95rem + 0.25vw, 1.125rem); /* 16 → 18 */
+  --text-lg: clamp(1.125rem, 1.05rem + 0.375vw, 1.375rem); /* 18 → 22 */
+  --text-xl: clamp(1.375rem, 1.2rem + 0.75vw, 1.75rem); /* 22 → 28 */
+  --text-2xl: clamp(1.75rem, 1.45rem + 1.3vw, 2.5rem); /* 28 → 40 */
+  --text-3xl: clamp(2.25rem, 1.7rem + 2.4vw, 3.75rem); /* 36 → 60 */
+  --text-4xl: clamp(3rem, 2rem + 4.4vw, 5.5rem); /* 48 → 88 */
+  --text-hero: clamp(3.5rem, 1.8rem + 7.6vw, 9rem); /* 56 → 144 */
+
+  /* ── Radius — deliberately sharp ─────────────────────────────────
+     No 24px+ rounded cards anywhere. Heavy corner rounding reads as
+     friendly consumer SaaS and would undercut the tone. Softness in
+     this design comes from the organic growth motion, not corners. */
+  --radius-sm: 2px;
+  --radius-md: 4px;
+  --radius-lg: 8px;
+  --radius-xl: 16px; /* chat panel only */
+
+  /* ── Elevation — light, not shadow ───────────────────────────────
+     On a near-black surface drop shadows are nearly invisible, so
+     depth comes from an implied light source above: a 1px top
+     highlight. Glows are separate tokens.
+     ⚠ never ANIMATE box-shadow — it repaints every frame. Animate
+     the opacity of a pseudo-element that already holds the glow. */
+  --shadow-elev-1: inset 0 1px 0 rgb(232 240 237 / 0.06);
+  --shadow-elev-2: inset 0 1px 0 rgb(232 240 237 / 0.08), 0 8px 24px -8px rgb(0 0 0 / 0.8);
+  --shadow-glow-sm: 0 0 12px -2px rgb(52 224 176 / 0.35);
+  --shadow-glow-md: 0 0 32px -4px rgb(52 224 176 / 0.45);
+  --shadow-glow-lg: 0 0 80px -12px rgb(52 224 176 / 0.5);
+
+  /* ── Motion ──────────────────────────────────────────────────────
+     --ease-bloom is THE signature curve: violent start, long graceful
+     settle. Used on every reveal in the site. One curve applied
+     consistently is most of why premium sites feel authored by a
+     single hand; generic ease-in-out has no personality. */
+  --ease-bloom: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-corrode: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* ── Breakpoints ────────────────────────────────────────────────── */
+  --breakpoint-sm: 430px;
+  --breakpoint-md: 768px;
+  --breakpoint-lg: 1024px;
+  --breakpoint-xl: 1440px;
+  --breakpoint-2xl: 1920px;
+}
+
+/* Values Tailwind doesn't need to make utilities from, but the app
+   and the animation layer read directly. */
+:root {
+  color-scheme: dark;
+
+  --dur-instant: 100ms; /* state acknowledgement */
+  --dur-fast: 200ms; /* hover */
+  --dur-base: 350ms;
+  --dur-slow: 650ms; /* section reveals */
+  --dur-bloom: 1200ms; /* signature growth */
+  --stagger: 60ms;
+
+  --gutter: clamp(1.25rem, 0.9rem + 1.6vw, 2.5rem); /* 20 → 40 */
+  --space-section: clamp(5rem, 3rem + 10vw, 12rem); /* 80 → 192 */
+  --container: 1440px;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: var(--color-void);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-base);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-display);
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::selection {
+    background: var(--color-patina-500);
+    color: var(--color-void);
+  }
+
+  /* :focus-visible, not :focus — mouse users never see a ring they
+     didn't ask for, keyboard users always do. */
+  :focus-visible {
+    outline: 2px solid var(--color-patina-300);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--color-void);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-line);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--color-line-strong);
+  }
+}
+
+@layer components {
+  /* Page gutter + max width. One class so the edge alignment is
+     identical on every section — misaligned gutters between sections
+     is one of the most common tells of an unsystematic build. */
+  .container-page {
+    width: 100%;
+    max-width: var(--container);
+    margin-inline: auto;
+    padding-inline: var(--gutter);
+  }
+
+  .section {
+    padding-block: var(--space-section);
+  }
+
+  /* Uppercase mono eyebrow — the "case file" texture. */
+  .label-mono {
+    font-family: var(--font-mono);
+    font-size: var(--text-xs);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-ink-faint);
+  }
+
+  /* Prose never exceeds 68ch regardless of viewport. */
+  .measure {
+    max-width: 68ch;
+  }
+}
+
+/* Reduced motion: the content still ARRIVES, it just arrives
+   instantly with opacity instead of moving. "Nothing happens" is a
+   broken experience, not an accessible one. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
