@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { ChatProvider } from "@/components/chat/ChatProvider";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
@@ -39,7 +40,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
-        {children}
+        <ChatProvider>{children}</ChatProvider>
       </body>
     </html>
   );

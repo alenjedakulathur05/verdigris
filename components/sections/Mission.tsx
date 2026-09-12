@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { ChatTrigger } from "@/components/chat/ChatTrigger";
 import { Reveal } from "@/components/ui/Reveal";
 import { character } from "@/content/character";
 
@@ -37,7 +37,7 @@ export function Mission() {
             </h3>
             <p className="mt-3 text-ink-muted">{character.cta.body}</p>
             <div className="mt-8">
-              <Button size="lg">{character.cta.button}</Button>
+              <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
             </div>
           </div>
         </Reveal>

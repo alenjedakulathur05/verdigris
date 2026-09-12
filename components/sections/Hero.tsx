@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/Button";
+import { ChatTrigger } from "@/components/chat/ChatTrigger";
 import { ArrowDown } from "@/components/ui/Icons";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { character } from "@/content/character";
@@ -36,10 +36,13 @@ export function Hero() {
           </RevealItem>
 
           <RevealItem className="mt-12 flex flex-wrap items-center gap-4">
-            <Button size="lg">{character.cta.button}</Button>
-            <Button variant="secondary" size="lg">
+            <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
+            <a
+              href="#origin"
+              className="inline-flex items-center justify-center rounded-md border border-line px-7 py-4 text-lg font-semibold text-ink transition-colors duration-200 hover:border-patina-700 hover:text-patina-300"
+            >
               Read the file
-            </Button>
+            </a>
           </RevealItem>
         </RevealGroup>
       </div>
