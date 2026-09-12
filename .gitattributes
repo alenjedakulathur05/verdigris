@@ -1,0 +1,13 @@
+# Normalise line endings.
+#
+# Without this, every file I write (LF) gets flagged by Git on Windows (CRLF)
+# and `git add` prints a warning per file. `text=auto eol=lf` stores everything
+# as LF in the repository while letting Git check out whatever your OS prefers,
+# so the history stays consistent no matter who clones it.
+* text=auto eol=lf
+
+# Never touch binaries.
+*.png binary
+*.jpg binary
+*.woff2 binary
+*.ico binary

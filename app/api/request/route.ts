@@ -81,10 +81,7 @@ export async function POST(request: Request) {
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
 
   if (rateLimited(ip)) {
-    return NextResponse.json(
-      { error: "Too many requests" },
-      { status: 429 },
-    );
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
   let body: unknown;
@@ -107,20 +104,20 @@ export async function POST(request: Request) {
   //
   // The AI call gets a hard timeout: a slow model must never hold up the
   // notification, which is the part that actually has to work.
-  const aiTimeout = AbortSignal.timeout(8000);
-
   const [emailResult, replyResult] = await Promise.allSettled([
     sendNotification(data, submittedAt),
-    generateReply(data, aiTimeout),
+    generateReply(data, AbortSignal.timeout(8000)),
   ]);
 
   const emailSent =
     emailResult.status === "fulfilled" && emailResult.value === true;
 
-  const reply =
-    replyResult.status === "fulfilled" && replyResult.value
+  const ai =
+    replyResult.status === "fulfilled"
       ? replyResult.value
-      : FALLBACK_REPLY;
+      : { reply: null, error: String(replyResult.reason) };
+
+  const reply = ai.reply ?? FALLBACK_REPLY;
 
   // The two failures are NOT equivalent, and treating them the same would be
   // the wrong call:
@@ -137,5 +134,38 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Delivery failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ reply });
+  return NextResponse.json({
+    reply,
+    // Development only. Never shipped to production, where leaking internal
+    // failure detail to the client would be information disclosure.
+    ...(process.env.NODE_ENV === "development" && ai.error
+      ? { debug: ai.error }
+      : {}),
+  });
+}
+
+/* ── Development helper ────────────────────────────────────────────────────
+   Lists the models this Groq account can actually use, so the correct id
+   comes from the provider rather than from memory. Guarded to development and
+   removed before deployment. */
+
+export async function GET() {
+  if (process.env.NODE_ENV !== "development") {
+    return new NextResponse(null, { status: 404 });
+  }
+
+  const apiKey = process.env.GROQ_API_KEY;
+  if (!apiKey) {
+    return NextResponse.json({ error: "GROQ_API_KEY is not set" });
+  }
+
+  const res = await fetch("https://api.groq.com/openai/v1/models", {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  });
+
+  const json = (await res.json()) as { data?: { id: string }[] };
+  return NextResponse.json({
+    status: res.status,
+    models: json.data?.map((m) => m.id).sort() ?? json,
+  });
 }
