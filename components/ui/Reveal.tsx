@@ -37,7 +37,11 @@ export function Reveal({
   as = "div",
 }: RevealProps) {
   const reduced = useReducedMotion();
-  const MotionTag = motion[as];
+  // Indexing `motion` with a union of tag names yields a union of component
+  // types, which TypeScript refuses to render in JSX ("union type too complex
+  // to represent"). Every motion component accepts the same props, so
+  // collapsing to one concrete type is safe at runtime and honest about it.
+  const MotionTag = motion[as] as typeof motion.div;
 
   return (
     <MotionTag
@@ -67,7 +71,7 @@ export function RevealGroup({
   rhythm = "default",
   as = "div",
 }: RevealGroupProps) {
-  const MotionTag = motion[as];
+  const MotionTag = motion[as] as typeof motion.div;
 
   return (
     <MotionTag
@@ -94,7 +98,7 @@ export function RevealItem({
   as?: "div" | "li" | "p" | "span";
 }) {
   const reduced = useReducedMotion();
-  const MotionTag = motion[as];
+  const MotionTag = motion[as] as typeof motion.div;
 
   return (
     <MotionTag className={className} variants={reduced ? fadeOnly : fadeUp}>
