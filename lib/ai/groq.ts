@@ -18,7 +18,7 @@ const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 const MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-20b";
 
 export async function completeWithGroq(
-  input: { system: string; user: string; maxTokens: number },
+  input: { system: string; user: string; maxTokens: number; json?: boolean },
   signal?: AbortSignal,
 ): Promise<AiResult> {
   const apiKey = process.env.GROQ_API_KEY;
@@ -38,6 +38,7 @@ export async function completeWithGroq(
         // gpt-oss reasons before answering and both passes share this budget.
         // A tight cap starved the answer and returned empty completions.
         max_tokens: input.maxTokens,
+        ...(input.json ? { response_format: { type: "json_object" } } : {}),
         ...(MODEL.includes("gpt-oss") ? { reasoning_effort: "low" } : {}),
         messages: [
           { role: "system", content: input.system },

@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
 import { ChatProvider } from "@/components/chat/ChatProvider";
+import { Atmosphere } from "@/components/ui/Atmosphere";
+import { BootSequence } from "@/components/ui/BootSequence";
+import { Header } from "@/components/ui/Header";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
@@ -40,7 +43,16 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         >
           Skip to content
         </a>
-        <ChatProvider>{children}</ChatProvider>
+        {/* Order matters. Atmosphere sits at -z-10 behind everything and
+            ships no JavaScript; the boot overlay is a SIBLING of the page
+            rather than a wrapper around it, so a failure in the sequence can
+            never prevent the site itself from rendering. */}
+        <Atmosphere />
+        <ChatProvider>
+          <Header />
+          {children}
+        </ChatProvider>
+        <BootSequence />
       </body>
     </html>
   );

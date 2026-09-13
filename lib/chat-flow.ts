@@ -23,6 +23,14 @@ export type ChatStep = {
   multiline?: boolean;
   inputMode?: "text" | "numeric" | "email";
   autoComplete?: string;
+  /** What this step collects, in plain words. Sent to the model so it never
+   *  has to infer the field from the question text — inferring "where?" as a
+   *  street address is exactly how that goes wrong. */
+  label: string;
+  /** Free-text fields whose answers cannot be told from non-answers by rule.
+   *  These route through model extraction; the bounds here are the hard limits
+   *  code still enforces on whatever the model returns. */
+  extract?: { maxWords: number; maxChars: number };
   validate: (raw: string) => ValidationResult;
   /** In-character reaction to a valid answer. A form says "✓ Accepted";
    *  a character says something a person would say. */
@@ -55,6 +63,23 @@ function looksLikeQuestion(value: string): boolean {
   return trimmed.split(/\s+/).length >= 3 && QUESTION_WORD.test(trimmed);
 }
 
+const REFUSAL_OPENER =
+  /^(no|nope|nah|skip|pass|never|none of your|not telling|not saying|why should i)\b/i;
+const REFUSAL_I =
+  /^i\s*(do\s?n.?t|dont|don.t|won.t|wont|will not|prefer not|would rather not|rather not|am not|ain.?t)\b/i;
+
+/**
+ * Is this a refusal rather than an answer?
+ *
+ * "i dont want to tell that" is six words with no question mark, so every
+ * other check passed and it was stored as someone.s city. A decline needs its
+ * own branch: the right response is to acknowledge it, not to record it.
+ */
+function looksLikeRefusal(value: string): boolean {
+  const trimmed = value.trim();
+  return REFUSAL_OPENER.test(trimmed) || REFUSAL_I.test(trimmed);
+}
+
 /** "my name is Aj" → "Aj". People answer conversationally; taking the whole
  *  sentence literally is what makes a chatbot feel stupid. */
 function stripLeadIn(value: string): string {
@@ -68,6 +93,20 @@ function stripLeadIn(value: string): string {
     .trim();
 }
 
+/** A decline is a legitimate thing for someone to say. Acknowledge it,
+ *  explain briefly, ask once more — and after enough attempts the engine
+ *  lets them past rather than trapping them in a loop. */
+function refusalResult(field: string): ValidationResult {
+  return {
+    ok: false,
+    message: "I am not going to force it. But I do need it.",
+    hint:
+      "They are refusing to answer. Acknowledge that without pressure, say in one short clause why you need " +
+      field +
+      ", then ask once more.",
+  };
+}
+
 export const GREETING: string[] = [
   "You found it. Most people walk straight past this lot.",
   "I'm Verdigris. I deal with the things this city gave up on.",
@@ -77,6 +116,8 @@ export const steps: ChatStep[] = [
   {
     id: "name",
     ask: () => ["What do I call you?"],
+    label: "their name",
+    extract: { maxWords: 4, maxChars: 60 },
     placeholder: "Your name",
     autoComplete: "given-name",
     validate: (raw) => {
@@ -88,6 +129,7 @@ export const steps: ChatStep[] = [
           hint: "They asked you something instead of answering. Answer their question briefly and honestly first, then ask for their name again.",
         };
       }
+      if (looksLikeRefusal(input)) return refusalResult("a name to call them by");
       const value = stripLeadIn(input);
       if (value.length < 2) {
         return { ok: false, message: "I need something to call you." };
@@ -108,10 +150,12 @@ export const steps: ChatStep[] = [
       `How old are you, ${d.name ?? "friend"}?`,
       "I ask because it changes what I can actually do for you.",
     ],
+    label: "their age, as a number",
     placeholder: "Your age",
     inputMode: "numeric",
     validate: (raw) => {
       const value = raw.trim();
+      if (looksLikeRefusal(value)) return refusalResult("their age");
       const n = Number(value);
       if (!/^\d{1,3}$/.test(value) || !Number.isFinite(n)) {
         return {
@@ -136,6 +180,8 @@ export const steps: ChatStep[] = [
     ask: () => [
       "Where are you? A city is enough — I'm not going to turn up uninvited.",
     ],
+    label: "the city they are in",
+    extract: { maxWords: 5, maxChars: 80 },
     placeholder: "City, or nearest one",
     autoComplete: "address-level2",
     validate: (raw) => {
@@ -147,10 +193,11 @@ export const steps: ChatStep[] = [
           hint: "They asked you something instead of answering. Answer their question briefly and honestly first, then ask where they are again.",
         };
       }
+      if (looksLikeRefusal(input)) return refusalResult("the city they are in");
       const value = stripLeadIn(input);
       if (value.length < 2) return { ok: false, message: "Somewhere. Anywhere." };
       if (value.length > 80) return { ok: false, message: "Just the city." };
-      if (value.split(/\s+/).length > 6) {
+      if (value.split(/\s+/).length > 4) {
         return { ok: false, message: "Just the city will do." };
       }
       return { ok: true, value };
@@ -160,13 +207,15 @@ export const steps: ChatStep[] = [
   {
     id: "email",
     ask: () => [
-      "If I need to reach you after tonight — where?",
+      "If I need to reach you after tonight, what is your email address?",
     ],
+    label: "their email address",
     placeholder: "you@example.com",
     inputMode: "email",
     autoComplete: "email",
     validate: (raw) => {
       const input = raw.trim();
+      if (looksLikeRefusal(input)) return refusalResult("an email address");
       // Pull the address out of whatever they wrote. "you can reach me at
       // aj@example.com" is a perfectly normal way to answer, and demanding a
       // bare address is the kind of rigidity that makes chat feel like a form.
@@ -183,6 +232,7 @@ export const steps: ChatStep[] = [
   {
     id: "grievance",
     ask: () => ["That's everything I need.", "So. Tell me. How can I help you?"],
+    label: "what they need help with",
     placeholder: "Take as long as you need…",
     multiline: true,
     validate: (raw) => {

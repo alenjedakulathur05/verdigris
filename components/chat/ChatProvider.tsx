@@ -11,6 +11,7 @@ import {
 } from "react";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { useChatEngine } from "@/hooks/useChatEngine";
+import { whenBooted } from "@/lib/boot";
 import { EASE_BLOOM } from "@/lib/motion";
 
 type ChatContextValue = {
@@ -59,9 +60,19 @@ export function ChatProvider({ children }: { children: ReactNode }) {
    */
   useEffect(() => {
     if (hasOpened) return;
-    const isMobile = window.matchMedia("(max-width: 767px)").matches;
-    const timer = window.setTimeout(open, isMobile ? 2600 : 1600);
-    return () => window.clearTimeout(timer);
+    let timer = 0;
+    /* Wait for the entry sequence to lift before starting the clock. Without
+       this the two race: on a fast machine the panel would slide in behind a
+       curtain that is still closing, and the visitor would see a chat window
+       appear out of nowhere the instant the site did. */
+    const stop = whenBooted(() => {
+      const isMobile = window.matchMedia("(max-width: 767px)").matches;
+      timer = window.setTimeout(open, isMobile ? 2200 : 1300);
+    });
+    return () => {
+      stop();
+      window.clearTimeout(timer);
+    };
   }, [hasOpened, open]);
 
   return (

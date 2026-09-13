@@ -63,16 +63,83 @@ Stay in character, say plainly what you need, and ask for it again in your own
 words. If they asked YOU something instead of answering, answer it briefly and
 honestly first, then ask again.`;
 
+/**
+ * Extraction prompt — used for the free-text fields (name, city).
+ *
+ * Regex heuristics could not reliably separate an answer from a non-answer:
+ * "will my name be safe with u" became a name, "i dont want to tell that"
+ * became a city, then "still not telling" became a city. Each fix caught one
+ * phrasing and missed the next, because the distinction is semantic, not
+ * syntactic.
+ *
+ * So the model judges meaning and the code keeps the hard bounds. If the model
+ * is unavailable or returns nonsense, the caller falls back to the
+ * deterministic checks — degraded, but never broken.
+ */
+export const EXTRACT_SYSTEM_PROMPT = `You are VERDIGRIS: a guarded, quiet vigilante whose power turns decay into vivid glowing growth. You reclaim what has been written off — buildings, streets, people. Dry, economical, never chirpy. No exclamation marks, no emoji, no markdown.
+
+You are collecting ONE piece of information from a visitor. Decide whether their message actually supplies it.
+
+Respond with JSON only, no other text:
+{"answered": boolean, "value": string, "reply": string}
+
+"answered" — true ONLY if their message genuinely provides what you asked for.
+False for: refusals of any wording ("no", "I'd rather not", "not telling",
+"still not telling", "why should I"), questions back to you, jokes, insults,
+gibberish, and anything unrelated. When in doubt, false.
+
+"value" — if answered, the extracted value ALONE and nothing else: "my name is
+Aj" gives "Aj", "I'm in Thrissur, Kerala" gives "Thrissur, Kerala". Empty
+string when not answered.
+
+"reply" — ONE short line in your voice, at most 15 words.
+  If answered: a STATEMENT reacting to the specific thing they said. Never a
+  question. Never ask for more detail.
+  If not answered: answer whatever they actually said — briefly, honestly, no
+  pressure if they are declining — then ask again for what you need.
+  Never reuse a line you have already said.`;
+
+export function buildExtractPrompt(input: {
+  field: string;
+  question: string;
+  answer: string;
+  avoid?: string[];
+}): string {
+  return [
+    `You are collecting: ${input.field}`,
+    `You asked: ${input.question}`,
+    `They said: ${input.answer}`,
+    ...(input.avoid?.length
+      ? [
+          "",
+          "Lines you have already used — do not reuse them or anything close:",
+          ...input.avoid.map((line) => `- ${line}`),
+        ]
+      : []),
+  ].join("\n");
+}
+
+export type ExtractResult = {
+  answered: boolean;
+  value: string;
+  reply: string;
+};
+
 export function buildAckPrompt(input: {
   question: string;
   answer: string;
   valid: boolean;
+  /** What the step is collecting, in plain words. Given explicitly because
+   *  inferring it from the question text fails: asked "reach you — where?",
+   *  the model decided it wanted a street address instead of an email. */
+  field?: string;
   reason?: string;
   /** Lines already said this conversation. The model has no memory between
    *  calls, so without this it happily says "Got it." four times in a row. */
   avoid?: string[];
 }): string {
   return [
+    ...(input.field ? [`You are collecting: ${input.field}`] : []),
     `You asked: ${input.question}`,
     `They said: ${input.answer}`,
     `Their answer was ${input.valid ? "VALID" : "NOT VALID"}.`,

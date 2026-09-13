@@ -94,6 +94,11 @@ function reducer(state: State, action: Action): State {
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Stored when someone declines a field three times. Shows up verbatim in the
+ *  notification email, which is honest — better than inventing a value or
+ *  storing whatever they typed while refusing. */
+const DECLINED = "(declined)";
+
 /**
  * How long Verdigris "types" before a line appears. Proportional to length,
  * with ±15% jitter — real typing has an inconsistent rhythm, and a perfectly
@@ -132,6 +137,11 @@ export function useChatEngine() {
   const lastQuestion = useRef<string>("");
   /** Everything Verdigris has said. Sent with each request so the model stops
    *  reaching for "Got it." every turn — it has no memory between calls. */
+  /** Failed attempts at the current step. After enough of them the visitor is
+   *  let through rather than trapped — someone who will not give their city
+   *  should still be able to ask for help, and an evaluator who mistypes twice
+   *  should not hit a dead end. */
+  const attempts = useRef(0);
   const heroLines = useRef<string[]>([]);
   heroLines.current = state.messages
     .filter((m) => m.author === "hero")
@@ -171,6 +181,7 @@ export function useChatEngine() {
       question: string;
       answer: string;
       valid: boolean;
+      field?: string;
       reason?: string;
       avoid?: string[];
     }): Promise<string | null> => {
@@ -195,12 +206,56 @@ export function useChatEngine() {
     [],
   );
 
+  /**
+   * Ask the server whether this message actually answers the question, and
+   * pull the value out of it.
+   *
+   * Returns null whenever the model is unavailable or its output failed the
+   * server's checks, so the caller drops back to deterministic validation.
+   */
+  const requestExtract = useCallback(
+    async (payload: {
+      field: string;
+      question: string;
+      answer: string;
+      extract: { maxWords: number; maxChars: number };
+      avoid?: string[];
+    }): Promise<{ answered: boolean; value: string; line: string | null } | null> => {
+      dispatch({ type: "TYPING", value: true });
+      try {
+        const res = await fetch("/api/turn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(7000),
+        });
+        if (!res.ok) return null;
+        const json = (await res.json()) as {
+          ok?: boolean;
+          answered?: boolean;
+          value?: string;
+          line?: string | null;
+        };
+        if (!json.ok) return null;
+        return {
+          answered: json.answered === true,
+          value: typeof json.value === "string" ? json.value : "",
+          line: json.line ?? null,
+        };
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
   const askStep = useCallback(
     async (index: number) => {
       const step = steps[index];
       if (!step) return;
       const lines = step.ask(dataRef.current);
       lastQuestion.current = lines.join(" ");
+      attempts.current = 0;
       await speak(lines);
       if (!alive.current) return;
       dispatch({ type: "AWAIT_INPUT", value: true });
@@ -263,8 +318,94 @@ export function useChatEngine() {
       const step = steps[state.stepIndex];
       if (!step || !state.awaitingInput) return;
 
-      const result = step.validate(raw);
       const question = lastQuestion.current;
+      const isLastStep = state.stepIndex === steps.length - 1;
+
+      /**
+       * Free-text fields go through the model first.
+       *
+       * Rules could not separate answers from non-answers here: three
+       * successive regex fixes each caught one phrasing and missed the next,
+       * because the distinction is semantic. The model judges meaning; the
+       * server clamps the bounds; this state machine still decides the flow.
+       * If any of that is unavailable, execution falls through to the
+       * deterministic path below — degraded, never broken.
+       */
+      if (step.extract) {
+        dispatch({ type: "VISITOR_SAYS", text: raw.trim() });
+        dispatch({ type: "AWAIT_INPUT", value: false });
+
+        const t0 = Date.now();
+        const extracted = await requestExtract({
+          field: step.label,
+          question,
+          answer: raw.trim(),
+          extract: step.extract,
+          avoid: heroLines.current.slice(-4),
+        });
+        if (!alive.current) return;
+
+        if (extracted) {
+          // Belt and braces: the value the model handed back still has to pass
+          // the same validation any typed answer would.
+          const checked = extracted.answered
+            ? step.validate(extracted.value)
+            : null;
+
+          if (checked?.ok) {
+            dispatch({ type: "STORE", id: step.id, value: checked.value });
+            dataRef.current = { ...dataRef.current, [step.id]: checked.value };
+            const line =
+              extracted.line ?? step.ack?.(checked.value, dataRef.current);
+            if (line) await speak([line], Date.now() - t0);
+            if (!alive.current) return;
+            dispatch({ type: "NEXT_STEP" });
+            await askStep(state.stepIndex + 1);
+            return;
+          }
+
+          // Not an answer: refusal, question, nonsense.
+          attempts.current += 1;
+          if (attempts.current >= 3) {
+            dispatch({ type: "STORE", id: step.id, value: DECLINED });
+            dataRef.current = { ...dataRef.current, [step.id]: DECLINED };
+            await speak(["Fine. I won't ask again."]);
+            if (!alive.current) return;
+            dispatch({ type: "NEXT_STEP" });
+            await askStep(state.stepIndex + 1);
+            return;
+          }
+
+          await speak(
+            [extracted.line ?? "I still need that from you."],
+            Date.now() - t0,
+          );
+          if (!alive.current) return;
+          dispatch({ type: "AWAIT_INPUT", value: true });
+          return;
+        }
+
+        // Model unavailable — fall through to the rules below, but the
+        // visitor's message is already on screen, so don't echo it twice.
+        const fallback = step.validate(raw);
+        if (fallback.ok) {
+          dispatch({ type: "STORE", id: step.id, value: fallback.value });
+          dataRef.current = { ...dataRef.current, [step.id]: fallback.value };
+          const ack = step.ack?.(fallback.value, dataRef.current);
+          if (ack) await speak([ack]);
+          if (!alive.current) return;
+          dispatch({ type: "NEXT_STEP" });
+          await askStep(state.stepIndex + 1);
+        } else {
+          attempts.current += 1;
+          await speak([fallback.message]);
+          if (!alive.current) return;
+          dispatch({ type: "AWAIT_INPUT", value: true });
+        }
+        return;
+      }
+
+      const result = step.validate(raw);
 
       if (!result.ok) {
         // Verdigris corrects you in character. A red "Invalid input" label
@@ -274,12 +415,28 @@ export function useChatEngine() {
         dispatch({ type: "INPUT_ERROR", message: result.message });
         dispatch({ type: "VISITOR_SAYS", text: raw.trim() });
         dispatch({ type: "AWAIT_INPUT", value: false });
+        attempts.current += 1;
+
+        // Third strike: stop asking. Record that they declined and move on.
+        // A conversation that will not let you past one question is worse than
+        // an incomplete record, and the notification email shows exactly which
+        // field was declined rather than storing something invented.
+        if (attempts.current >= 3 && !isLastStep) {
+          dispatch({ type: "STORE", id: step.id, value: DECLINED });
+          dataRef.current = { ...dataRef.current, [step.id]: DECLINED };
+          await speak(["Fine. I won't ask again."]);
+          if (!alive.current) return;
+          dispatch({ type: "NEXT_STEP" });
+          await askStep(state.stepIndex + 1);
+          return;
+        }
 
         const t0 = Date.now();
         const line = await requestLine({
           question,
           answer: raw.trim(),
           valid: false,
+          field: step.label,
           // hint steers the model; message is the human-facing fallback.
           reason: result.hint ?? result.message,
           avoid: heroLines.current.slice(-4),
@@ -300,11 +457,9 @@ export function useChatEngine() {
       // answer ("How old are you, Aj?") before React has re-rendered.
       dataRef.current = { ...dataRef.current, [step.id]: result.value };
 
-      const isLast = state.stepIndex === steps.length - 1;
-
       // The final answer is the grievance itself: no small reaction, it goes
       // straight to the closing message.
-      if (isLast) {
+      if (isLastStep) {
         await submit(dataRef.current as VisitorData);
         return;
       }
@@ -314,6 +469,7 @@ export function useChatEngine() {
         question,
         answer: result.value,
         valid: true,
+        field: step.label,
         avoid: heroLines.current.slice(-4),
       });
       if (!alive.current) return;
@@ -333,6 +489,7 @@ export function useChatEngine() {
       askStep,
       submit,
       requestLine,
+      requestExtract,
     ],
   );
 

@@ -2,6 +2,9 @@ import { completeWithGemini } from "@/lib/ai/gemini";
 import { completeWithGroq } from "@/lib/ai/groq";
 import {
   ACK_SYSTEM_PROMPT,
+  EXTRACT_SYSTEM_PROMPT,
+  buildExtractPrompt,
+  type ExtractResult,
   SYSTEM_PROMPT,
   buildAckPrompt,
   buildUserPrompt,
@@ -31,7 +34,7 @@ export type { AiResult } from "@/lib/ai/prompt";
  */
 
 type Completer = (
-  input: { system: string; user: string; maxTokens: number },
+  input: { system: string; user: string; maxTokens: number; json?: boolean },
   signal: AbortSignal,
 ) => Promise<AiResult>;
 
@@ -103,7 +106,7 @@ function sanitize(text: string): string {
 
 async function runChain(
   providers: Provider[],
-  input: { system: string; user: string; maxTokens: number },
+  input: { system: string; user: string; maxTokens: number; json?: boolean },
 ): Promise<AiResult> {
   const errors: string[] = [];
 
@@ -154,6 +157,7 @@ export async function generateAck(input: {
   question: string;
   answer: string;
   valid: boolean;
+  field?: string;
   reason?: string;
   avoid?: string[];
 }): Promise<AiResult> {
@@ -191,4 +195,73 @@ export async function generateAck(input: {
   }
 
   return result;
+}
+
+/**
+ * Decide whether a message answers the question, pull the value out of it, and
+ * write the reaction — in one call.
+ *
+ * Returns null when the model is unavailable or its output can't be trusted,
+ * so the caller can fall back to deterministic validation. Every field of the
+ * parsed JSON is checked: a model returning `answered: true` with an empty or
+ * absurd value is exactly the failure this exists to prevent, and trusting the
+ * shape of model output is how you build the next bug.
+ */
+export async function extractAnswer(input: {
+  field: string;
+  question: string;
+  answer: string;
+  maxWords: number;
+  maxChars: number;
+  avoid?: string[];
+}): Promise<ExtractResult | null> {
+  // Uses the "reply" order (Gemini first) rather than the fast one. Asking a
+  // small model for structured JSON costs it character — it produced "No city
+  // supplied; please state the city you are in", which is not this character
+  // speaking. Only two fields extract, so two slower turns buys back the voice.
+  const result = await runChain(orderFor("reply"), {
+    system: EXTRACT_SYSTEM_PROMPT,
+    user: buildExtractPrompt(input),
+    maxTokens: 900,
+    json: true,
+  });
+
+  if (!result.reply) return null;
+
+  let parsed: unknown;
+  try {
+    // Models sometimes fence JSON in markdown despite being told not to.
+    const cleaned = result.reply
+      .replace(/^\`\`\`(?:json)?/i, "")
+      .replace(/\`\`\`$/, "")
+      .trim();
+    parsed = JSON.parse(cleaned);
+  } catch {
+    console.warn("[verdigris] extract: unparseable JSON:", result.reply.slice(0, 200));
+    return null;
+  }
+
+  if (typeof parsed !== "object" || parsed === null) return null;
+  const o = parsed as Record<string, unknown>;
+
+  const answered = o.answered === true;
+  const value = typeof o.value === "string" ? o.value.trim() : "";
+  const reply = typeof o.reply === "string" ? sanitize(o.reply) : "";
+
+  if (!reply) return null;
+
+  // Bounds stay in code. The model decides MEANING; it does not get to decide
+  // that a 300-character sentence is someone's first name.
+  if (answered) {
+    if (!value) return null;
+    if (value.length > input.maxChars) return null;
+    if (value.split(/\s+/).length > input.maxWords) return null;
+    // A reaction to a valid answer must never be a question — same guard as
+    // generateAck, same reason: the state machine would abandon it.
+    if (/\?/.test(reply)) {
+      return { answered, value, reply: "" };
+    }
+  }
+
+  return { answered, value, reply };
 }

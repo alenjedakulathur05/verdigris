@@ -228,6 +228,129 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   ATMOSPHERE
+   ───────────────────────────────────────────────────────────────────
+   The ambient layer behind the whole site (components/ui/Atmosphere).
+   Lives in CSS rather than in the component so the drift animations run
+   on the compositor thread and never touch React.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* A surveyor's grid. Two hairline gradients, then masked radially so it
+   fades out toward the edges — a grid that stops at a hard rectangle
+   announces itself as a div, one that dissolves reads as atmosphere. */
+.atmos-grid,
+.boot-grid {
+  background-image:
+    repeating-linear-gradient(
+      to right,
+      rgb(60 72 68 / 0.28) 0 1px,
+      transparent 1px 100%
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      rgb(60 72 68 / 0.28) 0 1px,
+      transparent 1px 100%
+    );
+  background-size: clamp(44px, 6vw, 76px) clamp(44px, 6vw, 76px);
+  -webkit-mask-image: radial-gradient(
+    ellipse 90% 70% at 50% 40%,
+    #000 0%,
+    transparent 78%
+  );
+  mask-image: radial-gradient(
+    ellipse 90% 70% at 50% 40%,
+    #000 0%,
+    transparent 78%
+  );
+}
+
+.atmos-bloom {
+  position: absolute;
+  border-radius: 9999px;
+  /* Only transform and opacity animate. Animating width/left would relayout
+     the page 60 times a second; this runs entirely on the GPU. */
+  will-change: transform;
+  filter: blur(10px);
+}
+
+.atmos-bloom-a {
+  width: 78vmax;
+  height: 78vmax;
+  left: -26vmax;
+  bottom: -34vmax;
+  background: radial-gradient(
+    circle,
+    rgb(52 224 176 / 0.16) 0%,
+    transparent 62%
+  );
+  animation: atmos-drift-a 46s ease-in-out infinite alternate;
+}
+
+.atmos-bloom-b {
+  width: 62vmax;
+  height: 62vmax;
+  right: -24vmax;
+  top: -22vmax;
+  background: radial-gradient(
+    circle,
+    rgb(200 135 58 / 0.1) 0%,
+    transparent 62%
+  );
+  animation: atmos-drift-b 61s ease-in-out infinite alternate;
+}
+
+/* Two different periods (46s / 61s) on purpose: co-prime-ish durations mean
+   the pair never returns to the same relative position, so the loop is
+   genuinely unnoticeable. Matching durations would produce a visible pulse. */
+@keyframes atmos-drift-a {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(9vw, -7vh, 0) scale(1.16);
+  }
+}
+
+@keyframes atmos-drift-b {
+  from {
+    transform: translate3d(0, 0, 0) scale(1.1);
+  }
+  to {
+    transform: translate3d(-8vw, 6vh, 0) scale(1);
+  }
+}
+
+/* The atmosphere is decoration. When motion is reduced it stops moving, but
+   it does NOT disappear — removing it would change the design, not just the
+   animation, and that is not what the setting asks for. */
+@media (prefers-reduced-motion: reduce) {
+  .atmos-bloom {
+    animation: none !important;
+  }
+}
+
+/* Hero instrument strip. A 4% meter: the character has reclaimed almost
+   nothing, and saying so is more interesting than a fake 98%. */
+.hero-meter {
+  width: 0;
+  animation: hero-meter-fill 2.4s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards;
+  box-shadow: 0 0 8px 1px rgb(52 224 176 / 0.6);
+}
+
+@keyframes hero-meter-fill {
+  to {
+    width: 4%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-meter {
+    width: 4%;
+    animation: none !important;
+  }
+}
+
 /* Reduced motion: the content still ARRIVES, it just arrives
    instantly with opacity instead of moving. "Nothing happens" is a
    broken experience, not an accessible one. */

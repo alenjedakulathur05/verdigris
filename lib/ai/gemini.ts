@@ -31,7 +31,7 @@ const endpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
 export async function completeWithGemini(
-  input: { system: string; user: string; maxTokens: number },
+  input: { system: string; user: string; maxTokens: number; json?: boolean },
   signal?: AbortSignal,
 ): Promise<AiResult> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -58,6 +58,7 @@ export async function completeWithGemini(
           // underneath, not the reply itself.
           maxOutputTokens: input.maxTokens,
           thinkingConfig: THINKING_CONFIG,
+          ...(input.json ? { responseMimeType: "application/json" } : {}),
         },
         // Verdigris receives messages about hardship and loss. Default filters
         // can refuse ordinary accounts of grief or conflict, which would drop

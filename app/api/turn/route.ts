@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { generateAck } from "@/lib/ai";
+import { extractAnswer, generateAck } from "@/lib/ai";
 import { clientKey, rateLimit } from "@/lib/rate-limit";
 
 /**
@@ -26,6 +26,8 @@ type Body = {
   valid?: unknown;
   reason?: unknown;
   avoid?: unknown;
+  field?: unknown;
+  extract?: unknown;
 };
 
 export async function POST(request: Request) {
@@ -44,10 +46,16 @@ export async function POST(request: Request) {
   const answer = typeof body.answer === "string" ? body.answer.trim() : "";
   const valid = body.valid === true;
   const reason = typeof body.reason === "string" ? body.reason.trim() : undefined;
+  const field = typeof body.field === "string" ? body.field.trim().slice(0, 120) : undefined;
 
   if (!question || !answer) {
     return NextResponse.json({ error: "Incomplete request" }, { status: 400 });
   }
+
+  const extract =
+    typeof body.extract === "object" && body.extract !== null
+      ? (body.extract as { maxWords?: unknown; maxChars?: unknown })
+      : null;
 
   const avoid = Array.isArray(body.avoid)
     ? body.avoid
@@ -56,12 +64,37 @@ export async function POST(request: Request) {
         .map((v) => v.slice(0, 200))
     : undefined;
 
+  // Extraction path: the model judges whether this is an answer at all and
+  // pulls the value out. Bounds are clamped server-side rather than trusted
+  // from the client.
+  if (extract && field) {
+    const res = await extractAnswer({
+      field,
+      question: question.slice(0, 300),
+      answer: answer.slice(0, 500),
+      maxWords: Math.min(Number(extract.maxWords) || 4, 12),
+      maxChars: Math.min(Number(extract.maxChars) || 60, 200),
+      avoid,
+    });
+
+    // null means unusable output — the client falls back to its own rules.
+    if (!res) return NextResponse.json({ ok: false });
+
+    return NextResponse.json({
+      ok: true,
+      answered: res.answered,
+      value: res.value,
+      line: res.reply || null,
+    });
+  }
+
   const result = await generateAck({
     question: question.slice(0, 300),
     // Cap the untrusted field: this text goes into a model prompt, and an
     // unbounded one is both a cost and a prompt-injection surface.
     answer: answer.slice(0, 500),
     valid,
+    field,
     reason: reason?.slice(0, 200),
     avoid,
   });
