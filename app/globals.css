@@ -446,6 +446,37 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   CHAT PANEL GEOMETRY
+   ───────────────────────────────────────────────────────────────────
+   In CSS rather than inline on the element, because the height has to
+   change at the md breakpoint AND depend on --kb (the height of the
+   on-screen keyboard, measured in ChatPanel). An inline style would win
+   over any md: utility and there would be no way to override it.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* MOBILE — a bottom sheet covering 62% of the screen, not the whole thing.
+   The brief wants the chat to appear on arrival, but a full-screen panel
+   means the visitor's first impression of the site is a chat window: they
+   never see the hero at all. 62% keeps the wordmark and the character in
+   view above the sheet while the conversation still has room to breathe.
+
+   The min() is the keyboard case: when --kb grows the sheet SHRINKS to fit
+   the space left over, rather than being pushed up off the top of the
+   screen. */
+.chat-sheet {
+  bottom: var(--kb, 0px);
+  height: min(62dvh, calc(100dvh - var(--kb, 0px) - 12px));
+}
+
+/* DESKTOP — a docked panel, floated off the corner. */
+@media (min-width: 768px) {
+  .chat-sheet {
+    bottom: calc(var(--kb, 0px) + 1.5rem);
+    height: min(640px, calc(100dvh - 3rem));
+  }
+}
+
 /* Reduced motion: the content still ARRIVES, it just arrives
    instantly with opacity instead of moving. "Nothing happens" is a
    broken experience, not an accessible one. */

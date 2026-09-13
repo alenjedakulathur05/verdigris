@@ -73,20 +73,31 @@ export function ChatPanel({
       ref={panelRef}
       role="dialog"
       aria-label="Conversation with Verdigris"
-      initial={{ opacity: 0, y: 24, scale: 0.98 }}
+      initial={{ opacity: 0, y: 40, scale: 0.99 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 16, scale: 0.98 }}
-      transition={{ duration: 0.45, ease: EASE_BLOOM }}
-      style={{ bottom: "var(--kb, 0px)" }}
+      exit={{ opacity: 0, y: 28, scale: 0.99 }}
+      transition={{ duration: 0.5, ease: EASE_BLOOM }}
       className={[
-        // Mobile: full screen. A cramped corner bubble on a phone is where
-        // "conversational interface" quietly turns back into "form".
-        "fixed inset-x-0 top-0 z-50 flex flex-col bg-base",
-        // Desktop: docked panel, so the site behind stays visible.
-        "md:inset-auto md:right-6 md:top-auto md:h-[min(640px,calc(100dvh-3rem))] md:w-[400px] md:rounded-xl md:border md:border-line md:shadow-elev-2",
+        // Mobile: a bottom sheet. Height and offset come from .chat-sheet in
+        // globals.css so they can respond to both the breakpoint and the
+        // keyboard — see the note there.
+        "chat-sheet fixed inset-x-0 z-50 flex flex-col rounded-t-2xl border-t border-line bg-base",
+        // A hard shadow upward separates the sheet from the page behind it.
+        // Without it the two dark surfaces merge and the sheet has no edge.
+        "shadow-[0_-24px_60px_-24px_rgb(0_0_0/0.9)]",
+        // Desktop: docked panel, floated off the corner.
+        "md:inset-auto md:right-6 md:w-[400px] md:rounded-xl md:border md:border-line md:shadow-elev-2",
       ].join(" ")}
     >
-      <header className="flex items-center gap-3 border-b border-line-subtle px-4 py-3">
+      {/* Grab handle. Purely a signal — it tells a phone user this is a sheet
+          sitting over the page rather than a new screen they navigated to,
+          which is the difference between "I can dismiss this" and "where did
+          the website go". Hidden on desktop, where the panel is clearly a
+          floating window already. */}
+      <div aria-hidden className="flex justify-center pt-2.5 md:hidden">
+        <span className="h-1 w-10 rounded-full bg-line-strong" />
+      </div>
+      <header className="flex items-center gap-3 border-b border-line-subtle px-4 py-3 md:pt-3">
         <span
           aria-hidden
           className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-ember-700 bg-ember-900 font-display text-sm font-black text-ember-300"
