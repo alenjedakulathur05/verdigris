@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { FALLBACK_REPLY } from "@/lib/chat-flow";
+import { generateReply } from "@/lib/ai";
 import { sendNotification } from "@/lib/email";
-import { generateReply } from "@/lib/groq";
 import type { VisitorData } from "@/lib/types";
 
 /**
@@ -102,11 +102,12 @@ export async function POST(request: Request) {
   // doesn't wait on the mail server. Sequentially this would be the sum of
   // both latencies with the visitor watching a typing indicator.
   //
-  // The AI call gets a hard timeout: a slow model must never hold up the
-  // notification, which is the part that actually has to work.
+  // generateReply walks the provider chain (Gemini, then Groq) and enforces a
+  // timeout per provider, so a slow model can never hold up the notification —
+  // which is the part that actually has to work.
   const [emailResult, replyResult] = await Promise.allSettled([
     sendNotification(data, submittedAt),
-    generateReply(data, AbortSignal.timeout(8000)),
+    generateReply(data),
   ]);
 
   const emailSent =
@@ -137,35 +138,15 @@ export async function POST(request: Request) {
   return NextResponse.json({
     reply,
     // Development only. Never shipped to production, where leaking internal
-    // failure detail to the client would be information disclosure.
-    ...(process.env.NODE_ENV === "development" && ai.error
-      ? { debug: ai.error }
+    // provider detail to the client would be information disclosure.
+    ...(process.env.NODE_ENV === "development"
+      ? {
+          debug: {
+            provider: ai.provider ?? "fallback",
+            ...(ai.warnings?.length ? { warnings: ai.warnings } : {}),
+            ...(ai.error ? { error: ai.error } : {}),
+          },
+        }
       : {}),
-  });
-}
-
-/* ── Development helper ────────────────────────────────────────────────────
-   Lists the models this Groq account can actually use, so the correct id
-   comes from the provider rather than from memory. Guarded to development and
-   removed before deployment. */
-
-export async function GET() {
-  if (process.env.NODE_ENV !== "development") {
-    return new NextResponse(null, { status: 404 });
-  }
-
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "GROQ_API_KEY is not set" });
-  }
-
-  const res = await fetch("https://api.groq.com/openai/v1/models", {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  });
-
-  const json = (await res.json()) as { data?: { id: string }[] };
-  return NextResponse.json({
-    status: res.status,
-    models: json.data?.map((m) => m.id).sort() ?? json,
   });
 }
