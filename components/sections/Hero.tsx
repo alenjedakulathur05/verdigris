@@ -1,5 +1,6 @@
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
 import { HeroFilm } from "@/components/ui/HeroFilm";
+import { HeroParallax } from "@/components/ui/HeroParallax";
 import { ArrowDown } from "@/components/ui/Icons";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { character } from "@/content/character";
@@ -37,6 +38,9 @@ export function Hero() {
           At 640px tall (a short laptop) the old py-28 put the strip at 686px,
           i.e. off screen. */}
       <div className="container-page relative z-10 my-auto py-12 md:py-16">
+        {/* The copy leaves faster than the footage behind it — that difference
+            in rate is the depth cue. */}
+        <HeroParallax travel={-110}>
         <RevealGroup className="max-w-[36rem] lg:max-w-[52%]">
           <RevealItem as="p" className="label-mono mb-6 flex items-center gap-3">
             <span aria-hidden className="h-px w-8 bg-ember-700" />
@@ -70,6 +74,7 @@ export function Hero() {
             </a>
           </RevealItem>
         </RevealGroup>
+        </HeroParallax>
       </div>
 
       {/* Instrument strip. Its job is tone: it says this is a readout from

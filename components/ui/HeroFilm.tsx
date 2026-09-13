@@ -1,5 +1,6 @@
 "use client";
 
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
@@ -43,6 +44,18 @@ import { useEffect, useRef, useState } from "react";
 
 export function HeroFilm() {
   const video = useRef<HTMLVideoElement>(null);
+  const shell = useRef<HTMLDivElement>(null);
+  const reduced = useReducedMotion();
+
+  /* The backdrop sinks at roughly a third of the copy's rate as you scroll
+     out. Slower-moving background, faster-moving foreground — the whole
+     parallax illusion in one number. */
+  const { scrollYProgress } = useScroll({
+    target: shell,
+    offset: ["start start", "end start"],
+  });
+  const y = useTransform(scrollYProgress, [0, 1], [0, 90]);
+  const scale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
   /**
    * `null` means "not decided yet". Rendering the video during SSR and then
    * pulling it on the client would start a 600 KB download we immediately
@@ -70,7 +83,14 @@ export function HeroFilm() {
   }, [play]);
 
   return (
-    <div aria-hidden className="absolute inset-0 overflow-hidden">
+    <div ref={shell} aria-hidden className="absolute inset-0 overflow-hidden">
+      {/* One wrapper carries the parallax so the video and both scrims move
+          together — animating them separately would let the vignette drift off
+          the footage it is supposed to be feathering. */}
+      <motion.div
+        className="absolute inset-0"
+        style={reduced ? undefined : { y, scale }}
+      >
       {play === true ? (
         <video
           ref={video}
@@ -109,6 +129,7 @@ export function HeroFilm() {
           over the middle of the frame, leftward on desktop where the text sits
           beside the character. */}
       <div className="hero-scrim absolute inset-0" />
+      </motion.div>
     </div>
   );
 }

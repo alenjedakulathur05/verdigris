@@ -3,6 +3,7 @@
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { useState } from "react";
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
+import { useActiveSection } from "@/hooks/useActiveSection";
 import { EASE_BLOOM } from "@/lib/motion";
 
 /**
@@ -26,15 +27,18 @@ import { EASE_BLOOM } from "@/lib/motion";
  */
 
 const NAV = [
-  { href: "#origin", label: "Origin" },
-  { href: "#powers", label: "Capability" },
-  { href: "#mission", label: "Mission" },
+  { id: "origin", label: "Origin" },
+  { id: "powers", label: "Capability" },
+  { id: "mission", label: "Mission" },
 ];
+
+const SECTION_IDS = NAV.map((n) => n.id);
 
 export function Header() {
   const { scrollY } = useScroll();
   const [hidden, setHidden] = useState(false);
   const [solid, setSolid] = useState(false);
+  const active = useActiveSection(SECTION_IDS);
 
   useMotionValueEvent(scrollY, "change", (y) => {
     const prev = scrollY.getPrevious() ?? 0;
@@ -81,16 +85,31 @@ export function Header() {
 
           <nav aria-label="Sections" className="hidden md:block">
             <ul className="flex items-center gap-8">
-              {NAV.map((item) => (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    className="label-mono relative py-2 transition-colors duration-200 hover:text-ember-300"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
+              {NAV.map((item) => {
+                const isActive = active === item.id;
+                return (
+                  <li key={item.id}>
+                    <a
+                      href={`#${item.id}`}
+                      aria-current={isActive ? "true" : undefined}
+                      className={`label-mono relative py-2 transition-colors duration-300 hover:text-ember-300 ${
+                        isActive ? "text-ember-300" : ""
+                      }`}
+                    >
+                      {item.label}
+                      {/* Underline grows from the left rather than fading in.
+                          scaleX only — no layout, no paint, and it reads as
+                          the marker travelling with you down the page. */}
+                      <span
+                        aria-hidden
+                        className={`absolute -bottom-0.5 left-0 h-px w-full origin-left bg-ember-500 transition-transform duration-500 ease-bloom ${
+                          isActive ? "scale-x-100" : "scale-x-0"
+                        }`}
+                      />
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </nav>
 

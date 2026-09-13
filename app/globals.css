@@ -160,7 +160,16 @@
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    overflow-x: hidden;
+
+    /* CLIP, not HIDDEN. They look identical — both stop a horizontal
+       scrollbar — but `overflow: hidden` makes this element a scroll
+       CONTAINER, and that silently breaks `position: sticky` for every
+       descendant on the page. The pinned rail in the Origin section computed
+       as sticky and simply scrolled away with the content.
+       `overflow-x: clip` clips without creating a scroll container, so sticky
+       keeps working. This is the single most common reason sticky "doesn't
+       work" and the cause is never in the file you are looking at. */
+    overflow-x: clip;
   }
 
   h1,

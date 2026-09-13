@@ -4,6 +4,7 @@ import { ChatProvider } from "@/components/chat/ChatProvider";
 import { Atmosphere } from "@/components/ui/Atmosphere";
 import { BootSequence } from "@/components/ui/BootSequence";
 import { Header } from "@/components/ui/Header";
+import { ScrollProgress } from "@/components/ui/ScrollProgress";
 import { fontVariables } from "@/lib/fonts";
 import "./globals.css";
 
@@ -48,6 +49,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             rather than a wrapper around it, so a failure in the sequence can
             never prevent the site itself from rendering. */}
         <Atmosphere />
+        <ScrollProgress />
         <ChatProvider>
           <Header />
           {children}

@@ -65,6 +65,8 @@ export function BootSequence() {
   const reduced = useReducedMotion();
   const [visible, setVisible] = useState(true);
   const [progress, setProgress] = useState(0);
+  /** Hard unmount, independent of the exit animation. See finish(). */
+  const [gone, setGone] = useState(false);
   const done = useRef(false);
 
   function finish() {
@@ -74,6 +76,15 @@ export function BootSequence() {
     /* Fire once the wipe is genuinely off-screen, so the chat panel doesn't
        slide in behind a curtain that's still closing. */
     window.setTimeout(markBooted, WIPE * 1000 * 0.7);
+
+    /* Belt and braces, again — and this one was earned.
+       AnimatePresence removes a node only when its exit animation COMPLETES,
+       and an animation can simply be abandoned: requestAnimationFrame is
+       suspended while a tab is in the background, so a visitor who switches
+       away mid-wipe can come back to a curtain frozen across the whole page
+       with the content already unlocked behind it. I hit exactly that.
+       This timer unmounts the overlay whether or not anything animated. */
+    window.setTimeout(() => setGone(true), WIPE * 1000 + 400);
   }
 
   /*
@@ -168,7 +179,7 @@ export function BootSequence() {
     };
   }, [visible]);
 
-  if (reduced) return null;
+  if (reduced || gone) return null;
 
   const pct = Math.round(progress);
 
