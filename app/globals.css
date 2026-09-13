@@ -358,6 +358,85 @@
   }
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   HERO BACKDROP
+   ───────────────────────────────────────────────────────────────────
+   Layers over the full-screen loop (components/ui/HeroFilm).
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Which slice of a 9:16 frame you see inside a 16:9 screen is a design
+   decision, not a default — see the note in HeroFilm.
+   Measured rather than eyeballed: the face occupies 33%-48% of the source
+   frame. At 55% a 1000x640 viewport shows the band 35%-71%, which cuts the top
+   of the head off. 45% shows 29%-65%, which contains the whole face with room
+   above it. On a phone the aspect ratios nearly match, almost nothing is
+   cropped vertically, and this value stops mattering. */
+.hero-film {
+  object-position: center 45%;
+}
+
+/* Push the character right of the headline on desktop.
+   He sits at the horizontal centre of the source frame, and when the video is
+   exactly as wide as the viewport there is no horizontal overflow to shift —
+   so he lands dead centre, directly behind the wordmark. Overflowing to the
+   right moves him to roughly 59% of the screen, clear of the type.
+
+   This lives here rather than as a Tailwind arbitrary class for two reasons:
+   the JIT did not emit `md:w-[118%]` at all, and next/image with `fill` sets
+   width inline, which a plain class could never beat. !important is the honest
+   tool for overriding an inline style you do not control. */
+@media (min-width: 768px) {
+  .hero-film {
+    width: 118% !important;
+    max-width: none !important;
+  }
+}
+
+/* Fades all four boundaries into the page. An ellipse rather than a circle so
+   the falloff follows the shape of the viewport instead of cutting the corners
+   off a widescreen. */
+.hero-vignette {
+  background: radial-gradient(
+    ellipse 78% 72% at 50% 48%,
+    transparent 0%,
+    rgb(8 5 6 / 0.45) 62%,
+    rgb(8 5 6 / 0.92) 100%
+  );
+}
+
+/* Legibility. The footage averages L≈62 where the headline sits, which white
+   type cannot survive — so this is structural, not styling.
+   MOBILE FIRST: the text sits over the middle of the frame, so the scrim runs
+   top-to-bottom and is heaviest at both ends. */
+.hero-scrim {
+  background:
+    linear-gradient(
+      to bottom,
+      rgb(8 5 6 / 0.9) 0%,
+      rgb(8 5 6 / 0.62) 42%,
+      rgb(8 5 6 / 0.78) 72%,
+      var(--color-void) 100%
+    );
+}
+
+/* DESKTOP: the text sits beside the character, so the scrim runs left-to-right
+   — heavy where the words are, nearly clear over the face. A single
+   omnidirectional scrim strong enough for the text would flatten the footage
+   everywhere; this keeps the picture and the paragraph both. */
+@media (min-width: 768px) {
+  .hero-scrim {
+    background:
+      linear-gradient(
+        to right,
+        rgb(8 5 6 / 0.94) 0%,
+        rgb(8 5 6 / 0.82) 32%,
+        rgb(8 5 6 / 0.3) 62%,
+        rgb(8 5 6 / 0.55) 100%
+      ),
+      linear-gradient(to bottom, transparent 62%, var(--color-void) 100%);
+  }
+}
+
 /* Reduced motion: the content still ARRIVES, it just arrives
    instantly with opacity instead of moving. "Nothing happens" is a
    broken experience, not an accessible one. */

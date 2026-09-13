@@ -1,40 +1,45 @@
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
+import { HeroFilm } from "@/components/ui/HeroFilm";
 import { ArrowDown } from "@/components/ui/Icons";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
-import { SpecimenPlate } from "@/components/ui/SpecimenPlate";
 import { character } from "@/content/character";
 
 /**
  * Hero.
  *
- * A two-column grid above 1024px, a single stacked column below it. The
- * columns are 1.15fr / 1fr rather than 1fr / 1fr on purpose: equal halves make
- * the type and the image argue about which is the subject. Giving the words
- * slightly more room settles it.
+ * Full-bleed footage behind, content in a single left-aligned column on top.
+ * The column is capped near half the width on desktop so the words never run
+ * across the character's face — the layout and the scrim in globals.css are
+ * solving the same problem from two directions.
  *
- * Still a server component. The only JavaScript on this section is the chat
- * button and the plate's cursor parallax, both of which are their own islands.
+ * Two layout notes worth keeping:
  *
- * One layout note worth keeping: the vertical centring is `my-auto` on the
- * grid, NOT `justify-center` on the section. Those look identical until the
- * content is taller than the viewport — at which point justify-content centres
- * the overflow too, and the top of it becomes physically unreachable, because
- * you cannot scroll above zero. It ate the headline at tablet width. Auto
- * margins overflow downward only, which is what you always want here.
+ *   The vertical centring is `my-auto` on the content, NOT `justify-center` on
+ *   the section. They look identical until the content is taller than the
+ *   viewport — at which point justify-content centres the overflow too and the
+ *   top of it becomes physically unreachable, because you cannot scroll above
+ *   zero. It ate the headline at tablet width once already.
+ *
+ *   The backdrop is at z-0 and everything else is at z-10. Without an explicit
+ *   stacking order the absolutely-positioned video paints over the text about
+ *   half the time, depending on source order.
+ *
+ * Still a server component — the only JavaScript here is the chat button and
+ * the backdrop, each its own island.
  */
 export function Hero() {
   return (
-    <section className="relative flex min-h-[100dvh] flex-col overflow-hidden pt-24 md:pt-28">
-      <div className="container-page relative my-auto grid items-center gap-12 py-10 lg:grid-cols-[1.15fr_1fr] lg:gap-16">
-        <RevealGroup>
-          <RevealItem
-            as="p"
-            className="label-mono mb-6 flex items-center gap-3"
-          >
-            <span
-              aria-hidden
-              className="h-px w-8 bg-ember-700"
-            />
+    <section className="relative flex min-h-[100dvh] flex-col overflow-hidden">
+      <HeroFilm />
+
+      {/* py is small because `my-auto` is already doing the centring — generous
+          padding on top of it only pushes the instrument strip below the fold.
+          At 640px tall (a short laptop) the old py-28 put the strip at 686px,
+          i.e. off screen. */}
+      <div className="container-page relative z-10 my-auto py-12 md:py-16">
+        <RevealGroup className="max-w-[36rem] lg:max-w-[52%]">
+          <RevealItem as="p" className="label-mono mb-6 flex items-center gap-3">
+            <span aria-hidden className="h-px w-8 bg-ember-700" />
             Case file 001 — active
           </RevealItem>
 
@@ -44,10 +49,7 @@ export function Hero() {
             </h1>
           </RevealItem>
 
-          <RevealItem
-            as="p"
-            className="label-mono mt-4 text-ember-300/80"
-          >
+          <RevealItem as="p" className="label-mono mt-4 text-ember-300/85">
             {character.tagline}
           </RevealItem>
 
@@ -59,31 +61,21 @@ export function Hero() {
             <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
             <a
               href="#origin"
-              className="inline-flex items-center justify-center rounded-md border border-line px-7 py-4 text-lg font-semibold text-ink transition-colors duration-200 hover:border-ember-700 hover:text-ember-300"
+              /* bg-void/40 + backdrop-blur, not a transparent outline: over
+                 moving footage a purely outlined button loses its edge every
+                 time something bright drifts behind it. */
+              className="inline-flex items-center justify-center rounded-md border border-line bg-void/40 px-7 py-4 text-lg font-semibold text-ink backdrop-blur-sm transition-colors duration-200 hover:border-ember-700 hover:text-ember-300"
             >
               Read the file
             </a>
           </RevealItem>
         </RevealGroup>
-
-        {/* Below lg the plate follows the copy rather than sitting beside it.
-            It is decoration, so it never appears FIRST on a phone — the
-            headline and the call to action have to be above the fold. */}
-        {/* Capped hard on small screens. At full width the plate pushes the
-            call to action below the fold on a phone, which trades the most
-            important element on the page for decoration. */}
-        <Reveal
-          delay={0.15}
-          className="mx-auto w-full max-w-[15rem] sm:max-w-[19rem] md:max-w-[24rem] lg:max-w-none"
-        >
-          <SpecimenPlate />
-        </Reveal>
       </div>
 
-      {/* Instrument strip. Its job is tone: it says this site is a readout
-          from somewhere, not a brochure. Everything in it is honest — the
-          numbers describe the fiction, they don't pretend to be live data. */}
-      <Reveal delay={0.5} className="container-page relative pb-8">
+      {/* Instrument strip. Its job is tone: it says this is a readout from
+          somewhere, not a brochure. The numbers describe the fiction; they do
+          not pretend to be live data. */}
+      <Reveal delay={0.5} className="container-page relative z-10 pb-8">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line-subtle pt-5">
           <span className="flex items-center gap-2">
             <span className="relative flex h-1.5 w-1.5">
@@ -98,13 +90,11 @@ export function Hero() {
           <span className="flex min-w-[10rem] flex-1 items-center gap-3">
             <span className="label-mono shrink-0">Reclaimed</span>
             <span className="relative h-px flex-1 bg-line">
-              {/* Fills once on entry. Width, not transform, because it animates
-                  exactly once and a 1px bar has nothing to repaint. */}
               <span className="hero-meter absolute inset-y-0 left-0 bg-ember-500" />
             </span>
             {/* The one volt element above the fold. It is the only number on
                 the page, so it gets the loudest colour we own — and because
-                nothing else near it is yellow, the eye goes straight there. */}
+                nothing near it is yellow, the eye goes straight there. */}
             <span className="shrink-0 font-mono text-xs tabular-nums text-volt-400">
               04%
             </span>
