@@ -33,20 +33,20 @@ export function Hero() {
           >
             <span
               aria-hidden
-              className="h-px w-8 bg-patina-700"
+              className="h-px w-8 bg-ember-700"
             />
             Case file 001 — active
           </RevealItem>
 
           <RevealItem>
             <h1 className="font-display text-hero font-black leading-[0.9] tracking-[-0.035em]">
-              VERDI<span className="text-patina-500">GRIS</span>
+              VERDI<span className="text-ember-500">GRIS</span>
             </h1>
           </RevealItem>
 
           <RevealItem
             as="p"
-            className="label-mono mt-4 text-patina-300/80"
+            className="label-mono mt-4 text-ember-300/80"
           >
             {character.tagline}
           </RevealItem>
@@ -59,7 +59,7 @@ export function Hero() {
             <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
             <a
               href="#origin"
-              className="inline-flex items-center justify-center rounded-md border border-line px-7 py-4 text-lg font-semibold text-ink transition-colors duration-200 hover:border-patina-700 hover:text-patina-300"
+              className="inline-flex items-center justify-center rounded-md border border-line px-7 py-4 text-lg font-semibold text-ink transition-colors duration-200 hover:border-ember-700 hover:text-ember-300"
             >
               Read the file
             </a>
@@ -87,8 +87,8 @@ export function Hero() {
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3 border-t border-line-subtle pt-5">
           <span className="flex items-center gap-2">
             <span className="relative flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-patina-500 opacity-60" />
-              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-patina-500" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ember-500 opacity-60" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember-500" />
             </span>
             <span className="label-mono">Signal open</span>
           </span>
@@ -100,15 +100,18 @@ export function Hero() {
             <span className="relative h-px flex-1 bg-line">
               {/* Fills once on entry. Width, not transform, because it animates
                   exactly once and a 1px bar has nothing to repaint. */}
-              <span className="hero-meter absolute inset-y-0 left-0 bg-patina-500" />
+              <span className="hero-meter absolute inset-y-0 left-0 bg-ember-500" />
             </span>
-            <span className="shrink-0 font-mono text-xs tabular-nums text-patina-300">
+            {/* The one volt element above the fold. It is the only number on
+                the page, so it gets the loudest colour we own — and because
+                nothing else near it is yellow, the eye goes straight there. */}
+            <span className="shrink-0 font-mono text-xs tabular-nums text-volt-400">
               04%
             </span>
           </span>
 
           <span className="label-mono ml-auto flex items-center gap-2">
-            <ArrowDown size={14} className="text-patina-500" />
+            <ArrowDown size={14} className="text-ember-500" />
             Scroll
           </span>
         </div>

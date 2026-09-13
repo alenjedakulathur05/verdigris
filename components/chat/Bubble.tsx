@@ -23,8 +23,8 @@ export function Bubble({ message }: { message: Message }) {
       <div
         className={
           isHero
-            ? "max-w-[85%] rounded-lg rounded-tl-sm border-l-2 border-patina-500 bg-overlay px-4 py-3 text-ink"
-            : "max-w-[85%] rounded-lg rounded-tr-sm border border-patina-700 bg-patina-900 px-4 py-3 text-ink"
+            ? "max-w-[85%] rounded-lg rounded-tl-sm border-l-2 border-ember-500 bg-overlay px-4 py-3 text-ink"
+            : "max-w-[85%] rounded-lg rounded-tr-sm border border-ember-700 bg-ember-900 px-4 py-3 text-ink"
         }
       >
         <p className="whitespace-pre-wrap text-sm leading-relaxed">
@@ -47,12 +47,12 @@ export function TypingIndicator() {
       aria-label="Verdigris is typing"
       role="status"
     >
-      <div className="rounded-lg rounded-tl-sm border-l-2 border-patina-500 bg-overlay px-4 py-4">
+      <div className="rounded-lg rounded-tl-sm border-l-2 border-ember-500 bg-overlay px-4 py-4">
         <div className="flex gap-1.5">
           {[0, 0.18, 0.32].map((delay) => (
             <motion.span
               key={delay}
-              className="block h-1.5 w-1.5 rounded-full bg-patina-500"
+              className="block h-1.5 w-1.5 rounded-full bg-ember-500"
               animate={{ opacity: [0.25, 1, 0.25] }}
               transition={{
                 duration: 1.1,

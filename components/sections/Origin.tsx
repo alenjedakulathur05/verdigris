@@ -22,7 +22,7 @@ export function Origin() {
             {/* Hairline rule — a quiet structural marker that repeats in every
                 section, so the page has a visible skeleton. */}
             <Reveal delay={0.1}>
-              <div className="mt-10 h-px w-24 bg-patina-700" />
+              <div className="mt-10 h-px w-24 bg-ember-700" />
             </Reveal>
           </div>
 

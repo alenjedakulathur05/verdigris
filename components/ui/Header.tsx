@@ -65,14 +65,14 @@ export function Header() {
             className="group flex items-center gap-2.5"
             aria-label="Verdigris — home"
           >
-            {/* The mark: a filled square being eaten by patina. Cheaper and
+            {/* The mark: a filled square being eaten by oxide. Cheaper and
                 more ownable than an icon-font logo, and it scales to any
                 size without a second asset. */}
             <span
               aria-hidden
-              className="relative block h-3.5 w-3.5 rotate-45 border border-patina-700"
+              className="relative block h-3.5 w-3.5 rotate-45 border border-ember-700"
             >
-              <span className="absolute inset-[2px] bg-patina-500 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.35]" />
+              <span className="absolute inset-[2px] bg-ember-500 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.35]" />
             </span>
             <span className="font-display text-sm font-black tracking-[0.22em] text-ink">
               VERDIGRIS
@@ -85,7 +85,7 @@ export function Header() {
                 <li key={item.href}>
                   <a
                     href={item.href}
-                    className="label-mono relative py-2 transition-colors duration-200 hover:text-patina-300"
+                    className="label-mono relative py-2 transition-colors duration-200 hover:text-ember-300"
                   >
                     {item.label}
                   </a>
@@ -97,8 +97,8 @@ export function Header() {
           <div className="flex items-center gap-4">
             <span className="hidden items-center gap-2 lg:flex">
               <span className="relative flex h-1.5 w-1.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-patina-500 opacity-60" />
-                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-patina-500" />
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ember-500 opacity-60" />
+                <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember-500" />
               </span>
               <span className="label-mono">Listening</span>
             </span>

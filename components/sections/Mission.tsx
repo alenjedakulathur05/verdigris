@@ -15,7 +15,7 @@ export function Mission() {
         className="pointer-events-none absolute -right-1/4 top-0 h-[70vh] w-[70vh] rounded-full opacity-50"
         style={{
           background:
-            "radial-gradient(circle, rgb(52 224 176 / 0.14) 0%, transparent 70%)",
+            "radial-gradient(circle, rgb(255 31 69 / 0.18) 0%, transparent 70%)",
         }}
       />
 

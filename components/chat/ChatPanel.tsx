@@ -89,7 +89,7 @@ export function ChatPanel({
       <header className="flex items-center gap-3 border-b border-line-subtle px-4 py-3">
         <span
           aria-hidden
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-patina-700 bg-patina-900 font-display text-sm font-black text-patina-300"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-ember-700 bg-ember-900 font-display text-sm font-black text-ember-300"
         >
           V
         </span>
@@ -121,7 +121,7 @@ export function ChatPanel({
           and never triggers layout. */}
       <div aria-hidden className="h-px w-full bg-line-subtle">
         <motion.div
-          className="h-full origin-left bg-patina-500"
+          className="h-full origin-left bg-ember-500"
           initial={{ scaleX: 0 }}
           animate={{ scaleX: isFinished ? 1 : engine.progress }}
           transition={{ duration: 0.6, ease: EASE_BLOOM }}
@@ -146,13 +146,13 @@ export function ChatPanel({
 
       {isFinished ? (
         <div className="border-t border-line-subtle p-4">
-          <div className="flex items-start gap-3 rounded-md border border-patina-700 bg-patina-900 p-4">
-            <Check size={18} className="mt-0.5 shrink-0 text-patina-300" />
+          <div className="flex items-start gap-3 rounded-md border border-ember-700 bg-ember-900 p-4">
+            <Check size={18} className="mt-0.5 shrink-0 text-ember-300" />
             <div>
               <p className="text-sm font-semibold text-ink">Case filed</p>
               <p className="mt-1 text-sm text-ink-muted">
                 Verdigris has your request. You&apos;ll hear back at{" "}
-                <span className="text-patina-300">{engine.data.email}</span>.
+                <span className="text-ember-300">{engine.data.email}</span>.
               </p>
             </div>
           </div>

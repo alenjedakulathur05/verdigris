@@ -9,7 +9,7 @@
  *
  *   grid    — a surveyor's grid, radially masked so it dissolves at the edges
  *             instead of stopping at a hard line
- *   blooms  — two slow patina lights, drifting on different periods so they
+ *   blooms  — one ember light and one much dimmer volt light, drifting on
  *             never visibly loop
  *   grain   — SVG turbulence. Kills the banding that large soft gradients
  *             produce on 8-bit displays, and adds the paper texture that
@@ -52,7 +52,7 @@ export function Atmosphere() {
         className="absolute inset-0"
         style={{
           background:
-            "radial-gradient(ellipse at 50% 45%, transparent 40%, rgb(7 10 9 / 0.55) 100%)",
+            "radial-gradient(ellipse at 50% 45%, transparent 40%, rgb(8 5 6 / 0.6) 100%)",
         }}
       />
     </div>

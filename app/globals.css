@@ -18,51 +18,58 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 @theme {
-  /* ── Surfaces — "oxidized iron" ──────────────────────────────────
+  /* ── Surfaces — "scorched black" ─────────────────────────────────
      None of these are pure black. #000 kills depth, leaves nowhere
      darker to go, and smears visibly during scroll on OLED phones.
-     Every surface carries a slight green undertone so the greys feel
-     chemically related to the patina rather than neutral-with-a-
-     green-thing-on-top. */
-  --color-void: #070a09;
-  --color-base: #0b0f0e;
-  --color-raised: #121816;
-  --color-overlay: #1a221f;
-  --color-elevated: #222b28;
+     Every surface carries a faint red undertone so the greys feel
+     chemically related to the ember rather than neutral-with-a-red-
+     thing-on-top. Contrast between adjacent steps is deliberately
+     tiny (1.02–1.10) — surfaces separate by EDGE, not by value. */
+  --color-void: #080506;
+  --color-base: #0d0809;
+  --color-raised: #150e10;
+  --color-overlay: #1e1517;
+  --color-elevated: #291d20;
 
   /* ── Lines — on near-black these do more work than shadows ─────── */
-  --color-line-subtle: #1e2725;
-  --color-line: #2a3532;
-  --color-line-strong: #3c4844;
+  --color-line-subtle: #241a1c;
+  --color-line: #33262a;
+  --color-line-strong: #4a383c;
 
   /* ── Text — contrast ratios measured against --color-base ─────────
      Note --color-ink is NOT pure white: #fff on near-black is ~19:1,
-     which glares and causes halation on large display type. */
-  --color-ink: #e8f0ed; /* 16.0:1  AAA */
-  --color-ink-muted: #a3b3ae; /*  8.5:1  AAA */
-  --color-ink-faint: #7c8d88; /*  4.9:1  AA  */
-  --color-ink-disabled: #4a5854; /* non-essential text only */
+     which glares and causes halation on large display type. Warmed
+     very slightly so it sits in the same family as the surfaces. */
+  --color-ink: #f2e9ea; /* 16.7:1  AAA */
+  --color-ink-muted: #b3a4a7; /*  8.3:1  AAA */
+  --color-ink-faint: #8a7a7e; /*  4.9:1  AA  */
+  --color-ink-disabled: #544749; /* non-essential text only */
 
-  /* ── Verdigris — primary accent, the bioluminescent patina ─────── */
-  --color-patina-100: #d4fbef;
-  --color-patina-300: #7ff0d0;
-  --color-patina-500: #34e0b0; /* core brand — 11:1 on base */
-  --color-patina-600: #17c79a; /* hover */
-  --color-patina-700: #0e9b79; /* borders, subdued */
-  --color-patina-900: #063d31; /* tinted backgrounds */
+  /* ── Ember — primary accent, the dominant neon red ────────────────
+     Every ratio below is measured, not guessed. The important line is
+     500: at 5.2:1 it clears AA for body text, which is what lets it be
+     used for real content and not just decoration. Saturated reds get
+     dim fast — 600 is already large-text-only, and 700 is borders. */
+  --color-ember-100: #ffe4e8; /* 16.6:1  AAA */
+  --color-ember-300: #ff8fa3; /*  9.2:1  AAA — small text, labels */
+  --color-ember-400: #ff5c78; /*  6.7:1  AA  */
+  --color-ember-500: #ff1f45; /*  5.2:1  AA  — core brand */
+  --color-ember-600: #e00033; /*  4.0:1  AA large only — hover */
+  --color-ember-700: #a30026; /*  2.5:1  borders, never text */
+  --color-ember-900: #3d0010; /*  tinted backgrounds */
 
-  /* ── Copper — secondary accent, oxidized brass ──────────────────── */
-  --color-copper-400: #e3a857; /* 8.9:1 */
-  --color-copper-500: #c8873a;
-  --color-copper-600: #a66b28;
-  --color-copper-900: #3a2410;
-
-  /* ── Flare — rare accent. Its power comes from scarcity. ──────────
-     ⚠ white on flare-500 is 3.1:1 and FAILS WCAG AA.
-     Filled flare buttons must use --color-void as the label colour
-     (6.1:1 ✓). This constraint is deliberate, not an oversight. */
-  --color-flare-500: #ff5a3c;
-  --color-flare-600: #e8432a;
+  /* ── Volt — secondary accent, neon yellow ─────────────────────────
+     ⚠ Handle with restraint. At 15:1 this is BRIGHTER than the body
+     text, so anything painted in it instantly becomes the loudest
+     thing on screen. That is exactly why it is reserved for the one
+     idea per section that should out-shout the red. Used generously
+     it would fight the ember for dominance and the page would have
+     no hierarchy at all. */
+  --color-volt-300: #fff89b; /* 18.1:1 */
+  --color-volt-400: #ffe94d; /* 16.1:1 */
+  --color-volt-500: #ffe000; /* 15.1:1 */
+  --color-volt-600: #e6c800; /* 12.0:1 — hover */
+  --color-volt-900: #3a3200; /* tinted backgrounds */
 
   /* ── Typefaces ──────────────────────────────────────────────────── */
   --font-display: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
@@ -100,11 +107,11 @@
      highlight. Glows are separate tokens.
      ⚠ never ANIMATE box-shadow — it repaints every frame. Animate
      the opacity of a pseudo-element that already holds the glow. */
-  --shadow-elev-1: inset 0 1px 0 rgb(232 240 237 / 0.06);
-  --shadow-elev-2: inset 0 1px 0 rgb(232 240 237 / 0.08), 0 8px 24px -8px rgb(0 0 0 / 0.8);
-  --shadow-glow-sm: 0 0 12px -2px rgb(52 224 176 / 0.35);
-  --shadow-glow-md: 0 0 32px -4px rgb(52 224 176 / 0.45);
-  --shadow-glow-lg: 0 0 80px -12px rgb(52 224 176 / 0.5);
+  --shadow-elev-1: inset 0 1px 0 rgb(242 233 234 / 0.06);
+  --shadow-elev-2: inset 0 1px 0 rgb(242 233 234 / 0.08), 0 8px 24px -8px rgb(0 0 0 / 0.8);
+  --shadow-glow-sm: 0 0 12px -2px rgb(255 31 69 / 0.45);
+  --shadow-glow-md: 0 0 32px -4px rgb(255 31 69 / 0.55);
+  --shadow-glow-lg: 0 0 80px -12px rgb(255 31 69 / 0.6);
 
   /* ── Motion ──────────────────────────────────────────────────────
      --ease-bloom is THE signature curve: violent start, long graceful
@@ -171,14 +178,14 @@
   }
 
   ::selection {
-    background: var(--color-patina-500);
+    background: var(--color-ember-500);
     color: var(--color-void);
   }
 
   /* :focus-visible, not :focus — mouse users never see a ring they
      didn't ask for, keyboard users always do. */
   :focus-visible {
-    outline: 2px solid var(--color-patina-300);
+    outline: 2px solid var(--color-ember-300);
     outline-offset: 2px;
     border-radius: var(--radius-sm);
   }
@@ -244,12 +251,12 @@
   background-image:
     repeating-linear-gradient(
       to right,
-      rgb(60 72 68 / 0.28) 0 1px,
+      rgb(74 56 60 / 0.30) 0 1px,
       transparent 1px 100%
     ),
     repeating-linear-gradient(
       to bottom,
-      rgb(60 72 68 / 0.28) 0 1px,
+      rgb(74 56 60 / 0.30) 0 1px,
       transparent 1px 100%
     );
   background-size: clamp(44px, 6vw, 76px) clamp(44px, 6vw, 76px);
@@ -281,7 +288,7 @@
   bottom: -34vmax;
   background: radial-gradient(
     circle,
-    rgb(52 224 176 / 0.16) 0%,
+    rgb(255 31 69 / 0.20) 0%,
     transparent 62%
   );
   animation: atmos-drift-a 46s ease-in-out infinite alternate;
@@ -294,7 +301,7 @@
   top: -22vmax;
   background: radial-gradient(
     circle,
-    rgb(200 135 58 / 0.1) 0%,
+    rgb(255 224 0 / 0.07) 0%,
     transparent 62%
   );
   animation: atmos-drift-b 61s ease-in-out infinite alternate;
@@ -335,7 +342,7 @@
 .hero-meter {
   width: 0;
   animation: hero-meter-fill 2.4s cubic-bezier(0.16, 1, 0.3, 1) 0.9s forwards;
-  box-shadow: 0 0 8px 1px rgb(52 224 176 / 0.6);
+  box-shadow: 0 0 8px 1px rgb(255 31 69 / 0.7);
 }
 
 @keyframes hero-meter-fill {

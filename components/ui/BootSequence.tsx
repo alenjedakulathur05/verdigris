@@ -203,7 +203,7 @@ export function BootSequence() {
             className="pointer-events-none absolute left-1/2 top-1/2 h-[70vmin] w-[70vmin] -translate-x-1/2 -translate-y-1/2 rounded-full"
             style={{
               background:
-                "radial-gradient(circle, rgb(52 224 176 / 0.16) 0%, transparent 65%)",
+                "radial-gradient(circle, rgb(255 31 69 / 0.22) 0%, transparent 65%)",
               transform: `translate(-50%,-50%) scale(${0.45 + progress / 140})`,
               opacity: 0.35 + progress / 260,
             }}
@@ -214,7 +214,7 @@ export function BootSequence() {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: EASE_BLOOM }}
-              className="label-mono mb-8 text-patina-500"
+              className="label-mono mb-8 text-ember-500"
             >
               Reclamation system
             </motion.p>
@@ -234,11 +234,15 @@ export function BootSequence() {
                     <span className="text-ink-faint">{line.text}</span>
                     <span
                       aria-hidden
-                      className="shrink-0 text-patina-700 transition-colors duration-500"
+                      className="shrink-0 text-ember-700 transition-colors duration-500"
                       style={{
+                        /* Yellow, not red, and the split is semantic: ember is
+                           the work in progress, volt is the confirmation that
+                           it finished. One accent doing both jobs would make
+                           the readout unreadable at a glance. */
                         color:
                           progress >= line.at + 14
-                            ? "var(--color-patina-500)"
+                            ? "var(--color-volt-500)"
                             : undefined,
                       }}
                     >
@@ -249,14 +253,14 @@ export function BootSequence() {
               })}
             </ul>
 
-            {/* The bar. A 1px trough with a patina fill — the fill has a
+            {/* The bar. A 1px trough with an ember fill — the fill has a
                 brighter leading edge so the growth has a direction. */}
             <div className="relative h-px w-full bg-line">
               <div
-                className="absolute inset-y-0 left-0 bg-patina-500"
+                className="absolute inset-y-0 left-0 bg-ember-500"
                 style={{
                   width: `${progress}%`,
-                  boxShadow: "0 0 10px 1px rgb(52 224 176 / 0.7)",
+                  boxShadow: "0 0 10px 1px rgb(255 31 69 / 0.85)",
                 }}
               />
             </div>

@@ -80,7 +80,7 @@ export function ChatInput({ step, disabled, isRetry, onSend }: Props) {
         disabled={disabled || (!value.trim() && !isRetry)}
         aria-label="Send"
         // 44px minimum touch target — anything smaller fails on a phone.
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-patina-500 text-void transition-colors duration-200 hover:bg-patina-600 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-30"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-md bg-ember-500 text-void transition-colors duration-200 hover:bg-ember-600 active:scale-[0.96] disabled:pointer-events-none disabled:opacity-30"
       >
         <Send size={18} />
       </button>

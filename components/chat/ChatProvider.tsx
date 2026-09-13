@@ -94,11 +94,11 @@ export function ChatProvider({ children }: { children: ReactNode }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 8 }}
             transition={{ duration: 0.3, ease: EASE_BLOOM }}
-            className="fixed bottom-6 right-6 z-40 flex h-14 items-center gap-3 rounded-full border border-patina-700 bg-overlay px-5 text-sm font-semibold text-ink shadow-glow-sm transition-colors hover:border-patina-500 hover:bg-elevated"
+            className="fixed bottom-6 right-6 z-40 flex h-14 items-center gap-3 rounded-full border border-ember-700 bg-overlay px-5 text-sm font-semibold text-ink shadow-glow-sm transition-colors hover:border-ember-500 hover:bg-elevated"
           >
             <span
               aria-hidden
-              className="grid h-8 w-8 place-items-center rounded-full bg-patina-900 font-display text-xs font-black text-patina-300"
+              className="grid h-8 w-8 place-items-center rounded-full bg-ember-900 font-display text-xs font-black text-ember-300"
             >
               V
             </span>

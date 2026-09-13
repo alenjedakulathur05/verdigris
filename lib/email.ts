@@ -37,18 +37,18 @@ function formatTimestamp(date: Date): string {
 function buildHtml(data: VisitorData, submittedAt: Date): string {
   const row = (label: string, value: string) => `
     <tr>
-      <td style="padding:10px 0;border-bottom:1px solid #1e2725;color:#7c8d88;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;width:110px;vertical-align:top;">${label}</td>
-      <td style="padding:10px 0;border-bottom:1px solid #1e2725;color:#e8f0ed;font-size:15px;vertical-align:top;">${value}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #241a1c;color:#8a7a7e;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;width:110px;vertical-align:top;">${label}</td>
+      <td style="padding:10px 0;border-bottom:1px solid #241a1c;color:#f2e9ea;font-size:15px;vertical-align:top;">${value}</td>
     </tr>`;
 
   return `<!doctype html>
 <html>
-  <body style="margin:0;padding:24px;background:#070a09;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
-    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#0b0f0e;border:1px solid #2a3532;border-radius:8px;">
+  <body style="margin:0;padding:24px;background:#080506;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+    <table role="presentation" cellpadding="0" cellspacing="0" style="max-width:560px;margin:0 auto;background:#0d0809;border:1px solid #33262a;border-radius:8px;">
       <tr>
-        <td style="padding:28px 28px 20px;border-bottom:1px solid #1e2725;">
-          <div style="color:#34e0b0;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;">Incoming request</div>
-          <div style="color:#e8f0ed;font-size:24px;font-weight:800;letter-spacing:-0.02em;margin-top:8px;">Someone needs your help</div>
+        <td style="padding:28px 28px 20px;border-bottom:1px solid #241a1c;">
+          <div style="color:#ff1f45;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;">Incoming request</div>
+          <div style="color:#f2e9ea;font-size:24px;font-weight:800;letter-spacing:-0.02em;margin-top:8px;">Someone needs your help</div>
         </td>
       </tr>
       <tr>
@@ -57,19 +57,19 @@ function buildHtml(data: VisitorData, submittedAt: Date): string {
             ${row("Name", escapeHtml(data.name))}
             ${row("Age", escapeHtml(data.age))}
             ${row("Location", escapeHtml(data.location))}
-            ${row("Email", `<a href="mailto:${encodeURIComponent(data.email)}" style="color:#34e0b0;text-decoration:none;">${escapeHtml(data.email)}</a>`)}
+            ${row("Email", `<a href="mailto:${encodeURIComponent(data.email)}" style="color:#ff1f45;text-decoration:none;">${escapeHtml(data.email)}</a>`)}
             ${row("Received", escapeHtml(formatTimestamp(submittedAt)))}
           </table>
         </td>
       </tr>
       <tr>
         <td style="padding:20px 28px 28px;">
-          <div style="color:#7c8d88;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;">What they said</div>
-          <div style="background:#121816;border-left:2px solid #34e0b0;border-radius:4px;padding:16px;color:#e8f0ed;font-size:15px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(data.grievance)}</div>
+          <div style="color:#8a7a7e;font-size:11px;letter-spacing:0.14em;text-transform:uppercase;margin-bottom:10px;">What they said</div>
+          <div style="background:#150e10;border-left:2px solid #ff1f45;border-radius:4px;padding:16px;color:#f2e9ea;font-size:15px;line-height:1.6;white-space:pre-wrap;">${escapeHtml(data.grievance)}</div>
         </td>
       </tr>
       <tr>
-        <td style="padding:0 28px 28px;color:#4a5854;font-size:12px;">
+        <td style="padding:0 28px 28px;color:#544749;font-size:12px;">
           Sent automatically by VERDIGRIS. Reply directly to reach ${escapeHtml(data.name)}.
         </td>
       </tr>

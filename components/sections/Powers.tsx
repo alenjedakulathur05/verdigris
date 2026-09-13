@@ -22,8 +22,8 @@ export function Powers() {
           {items.map((power, i) => {
             // The third capability is a LIMITATION, not a power. Giving a
             // character a real weakness is what makes them read as a person
-            // instead of a feature list — so it gets the copper accent rather
-            // than patina, and the eye registers the difference before the
+            // instead of a feature list — so it gets the volt accent rather
+            // than ember, and the eye registers the difference before the
             // reader consciously does.
             const isLimitation = power.id === "long-night";
 
@@ -38,13 +38,13 @@ export function Powers() {
                 <span
                   aria-hidden
                   className={`absolute inset-x-0 top-0 h-px origin-left scale-x-0 transition-transform duration-500 ease-bloom group-hover:scale-x-100 ${
-                    isLimitation ? "bg-copper-400" : "bg-patina-500"
+                    isLimitation ? "bg-volt-400" : "bg-ember-500"
                   }`}
                 />
 
                 <span
                   className={`label-mono ${
-                    isLimitation ? "text-copper-400" : "text-patina-500"
+                    isLimitation ? "text-volt-400" : "text-ember-500"
                   }`}
                 >
                   {String(i + 1).padStart(2, "0")}
@@ -56,7 +56,7 @@ export function Powers() {
 
                 <p
                   className={`mt-2 text-sm font-medium ${
-                    isLimitation ? "text-copper-400" : "text-patina-300"
+                    isLimitation ? "text-volt-400" : "text-ember-300"
                   }`}
                 >
                   {power.summary}

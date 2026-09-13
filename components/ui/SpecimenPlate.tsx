@@ -7,7 +7,7 @@ import { EASE_BLOOM } from "@/lib/motion";
 /**
  * The hero visual — "Specimen plate: District 7".
  *
- * A surveyor's plate of a city block, drawn entirely in SVG, with the patina
+ * A surveyor's plate of a city block, drawn entirely in SVG, with the oxide
  * growing across it. Every competing take on this brief reaches for a
  * generated character render; this is deliberately the opposite bet:
  *
@@ -99,7 +99,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
         className="pointer-events-none absolute inset-[-18%] rounded-full opacity-70"
         style={{
           background:
-            "radial-gradient(circle, rgb(52 224 176 / 0.14) 0%, transparent 62%)",
+            "radial-gradient(circle, rgb(255 31 69 / 0.20) 0%, transparent 62%)",
           transform: `translate3d(${tilt.x * -14}px, ${tilt.y * -14}px, 0)`,
           transition: "transform 700ms cubic-bezier(0.16,1,0.3,1)",
         }}
@@ -108,7 +108,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
       <motion.svg
         viewBox="0 0 400 400"
         role="img"
-        aria-label="Survey plate of District Seven, showing patina growth across a demolished block"
+        aria-label="Survey plate of District Seven, showing oxide bloom spreading across a demolished block"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, margin: "0px 0px -10% 0px" }}
@@ -119,7 +119,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
         }}
       >
         <defs>
-          {/* Displacement turbulence is what stops the patina reading as a
+          {/* Displacement turbulence is what stops the bloom reading as a
               perfect circle — organic edges are the entire brand. */}
           <filter id="sp-organic" x="-30%" y="-30%" width="160%" height="160%">
             <feTurbulence
@@ -133,15 +133,15 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
             <feGaussianBlur stdDeviation="5" />
           </filter>
 
-          <radialGradient id="sp-patina" cx="50%" cy="88%" r="70%">
-            <stop offset="0%" stopColor="#7ff0d0" stopOpacity="0.85" />
-            <stop offset="45%" stopColor="#34e0b0" stopOpacity="0.42" />
-            <stop offset="100%" stopColor="#34e0b0" stopOpacity="0" />
+          <radialGradient id="sp-ember" cx="50%" cy="88%" r="70%">
+            <stop offset="0%" stopColor="var(--color-ember-300)" stopOpacity="0.9" />
+            <stop offset="45%" stopColor="var(--color-ember-500)" stopOpacity="0.5" />
+            <stop offset="100%" stopColor="var(--color-ember-500)" stopOpacity="0" />
           </radialGradient>
 
           <linearGradient id="sp-block" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#2a3532" />
-            <stop offset="100%" stopColor="#121816" />
+            <stop offset="0%" stopColor="var(--color-line)" />
+            <stop offset="100%" stopColor="var(--color-raised)" />
           </linearGradient>
 
           {/* Everything is clipped to the plate so the bloom can overflow the
@@ -152,10 +152,10 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
         </defs>
 
         <g clipPath="url(#sp-clip)">
-          <rect x="8" y="8" width="384" height="384" fill="#0b0f0e" />
+          <rect x="8" y="8" width="384" height="384" fill="var(--color-base)" />
 
           {/* Survey grid, inside the plate only */}
-          <g stroke="#1e2725" strokeWidth="1">
+          <g stroke="var(--color-line-subtle)" strokeWidth="1">
             {Array.from({ length: 9 }, (_, i) => (
               <line key={`v${i}`} x1={8 + i * 48} y1="8" x2={8 + i * 48} y2="392" />
             ))}
@@ -174,14 +174,14 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
                 width={w}
                 height={h}
                 fill="url(#sp-block)"
-                stroke="#2a3532"
+                stroke="var(--color-line)"
                 strokeWidth="1"
               />
             ))}
           </g>
 
           {/* Street line — the horizon everything else is measured against */}
-          <line x1="8" y1="360" x2="392" y2="360" stroke="#3c4844" strokeWidth="1" />
+          <line x1="8" y1="360" x2="392" y2="360" stroke="var(--color-line-strong)" strokeWidth="1" />
 
           {/* The bloom, growing up from the seed at street level */}
           <motion.ellipse
@@ -189,7 +189,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
             cy="330"
             rx="150"
             ry="120"
-            fill="url(#sp-patina)"
+            fill="url(#sp-ember)"
             filter="url(#sp-organic)"
             variants={{
               hidden: { scale: 0.2, opacity: 0 },
@@ -205,7 +205,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
           {/* Filaments. pathLength is the trick: Framer normalises any path to
               0…1, so one variant draws every curve regardless of its real
               length — no measuring, no stroke-dasharray arithmetic. */}
-          <g fill="none" stroke="#7ff0d0" strokeWidth="1.4" strokeLinecap="round">
+          <g fill="none" stroke="var(--color-ember-300)" strokeWidth="1.4" strokeLinecap="round">
             {FILAMENTS.map((d, i) => (
               <motion.path key={d} d={d} custom={i} variants={draw} />
             ))}
@@ -224,7 +224,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
               cx={cx}
               cy={cy}
               r="3"
-              fill="#34e0b0"
+              fill="var(--color-ember-500)"
               variants={{
                 hidden: { opacity: 0, scale: 0 },
                 visible: {
@@ -240,7 +240,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
 
         {/* HUD frame — corner ticks rather than a full border. A closed
             rectangle looks like a card; open corners look like an instrument. */}
-        <g stroke="#3c4844" strokeWidth="1" fill="none">
+        <g stroke="var(--color-line-strong)" strokeWidth="1" fill="none">
           {[
             "M8 40 L8 8 L40 8",
             "M360 8 L392 8 L392 40",
@@ -254,7 +254,7 @@ export function SpecimenPlate({ className = "" }: { className?: string }) {
         <text
           x="16"
           y="382"
-          fill="#7c8d88"
+          fill="var(--color-ink-faint)"
           fontSize="9"
           letterSpacing="1.6"
           fontFamily="var(--font-mono)"
