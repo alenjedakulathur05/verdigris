@@ -1,5 +1,7 @@
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
+import { Magnetic } from "@/components/ui/Magnetic";
 import { Reveal } from "@/components/ui/Reveal";
+import { SplitText } from "@/components/ui/SplitText";
 import { character } from "@/content/character";
 
 export function Mission() {
@@ -20,13 +22,18 @@ export function Mission() {
       />
 
       <div className="container-page relative">
-        <Reveal className="max-w-4xl">
-          <p className="label-mono mb-6">{eyebrow}</p>
+        <Reveal className="mb-6 max-w-4xl">
+          <p className="label-mono">{eyebrow}</p>
+        </Reveal>
 
-          <h2 className="font-display text-3xl font-extrabold leading-[1.05] tracking-[-0.02em]">
-            {title}
-          </h2>
+        <SplitText
+          as="h2"
+          text={title}
+          stagger={0.018}
+          className="block max-w-4xl font-display text-3xl font-extrabold leading-[1.05] tracking-[-0.02em]"
+        />
 
+        <Reveal>
           <p className="measure mt-8 text-lg text-ink-muted">{body}</p>
         </Reveal>
 
@@ -37,7 +44,9 @@ export function Mission() {
             </h3>
             <p className="mt-3 text-ink-muted">{character.cta.body}</p>
             <div className="mt-8">
-              <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
+              <Magnetic strength={16}>
+                <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
+              </Magnetic>
             </div>
           </div>
         </Reveal>

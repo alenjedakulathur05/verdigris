@@ -1,6 +1,8 @@
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
 import { HeroFilm } from "@/components/ui/HeroFilm";
 import { HeroParallax } from "@/components/ui/HeroParallax";
+import { Magnetic } from "@/components/ui/Magnetic";
+import { SplitText } from "@/components/ui/SplitText";
 import { ArrowDown } from "@/components/ui/Icons";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
 import { character } from "@/content/character";
@@ -47,11 +49,18 @@ export function Hero() {
             Case file 001 — active
           </RevealItem>
 
-          <RevealItem>
-            <h1 className="font-display text-hero font-black leading-[0.9] tracking-[-0.035em]">
-              VERDI<span className="text-ember-500">GRIS</span>
-            </h1>
-          </RevealItem>
+          {/* Not inside RevealItem: SplitText runs its own entrance, and
+              nesting it in a fading parent would mean two opacity animations
+              fighting over the same letters. */}
+          <h1
+            className="font-display text-hero font-black leading-[0.9] tracking-[-0.035em]"
+            aria-label="VERDIGRIS"
+          >
+            <SplitText text="VERDI" delay={0.15} stagger={0.055} />
+            <span className="text-ember-500">
+              <SplitText text="GRIS" delay={0.42} stagger={0.055} />
+            </span>
+          </h1>
 
           <RevealItem as="p" className="label-mono mt-4 text-ember-300/85">
             {character.tagline}
@@ -62,7 +71,10 @@ export function Hero() {
           </RevealItem>
 
           <RevealItem className="mt-10 flex flex-wrap items-center gap-4">
-            <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
+            <Magnetic strength={16}>
+              <ChatTrigger size="lg">{character.cta.button}</ChatTrigger>
+            </Magnetic>
+            <Magnetic strength={12}>
             <a
               href="#origin"
               /* bg-void/40 + backdrop-blur, not a transparent outline: over
@@ -72,6 +84,7 @@ export function Hero() {
             >
               Read the file
             </a>
+            </Magnetic>
           </RevealItem>
         </RevealGroup>
         </HeroParallax>

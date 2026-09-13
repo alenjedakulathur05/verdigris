@@ -3,6 +3,7 @@
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 import { Reveal } from "@/components/ui/Reveal";
+import { SplitText } from "@/components/ui/SplitText";
 import { character } from "@/content/character";
 
 /**
@@ -39,10 +40,13 @@ export function Origin() {
             <div className="lg:sticky lg:top-32 lg:self-start">
               <Reveal>
                 <p className="label-mono mb-6">{eyebrow}</p>
-                <h2 className="font-display text-3xl font-extrabold leading-[1.05] tracking-[-0.02em]">
-                  {title}
-                </h2>
               </Reveal>
+              <SplitText
+                as="h2"
+                text={title}
+                stagger={0.018}
+                className="font-display text-3xl font-extrabold leading-[1.05] tracking-[-0.02em]"
+              />
 
               <Reveal delay={0.1}>
                 <div className="mt-10 h-px w-24 bg-ember-700" />

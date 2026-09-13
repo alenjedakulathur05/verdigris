@@ -1,4 +1,8 @@
+"use client";
+
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
+import { SplitText } from "@/components/ui/SplitText";
+import { TiltCard } from "@/components/ui/TiltCard";
 import { character } from "@/content/character";
 
 export function Powers() {
@@ -7,12 +11,15 @@ export function Powers() {
   return (
     <section id="powers" className="section relative bg-base">
       <div className="container-page">
-        <Reveal className="mb-16 max-w-3xl">
-          <p className="label-mono mb-6">{eyebrow}</p>
-          <h2 className="font-display text-3xl font-extrabold leading-[1.05] tracking-[-0.02em]">
-            {title}
-          </h2>
+        <Reveal className="mb-6 max-w-3xl">
+          <p className="label-mono">{eyebrow}</p>
         </Reveal>
+        <SplitText
+          as="h2"
+          text={title}
+          stagger={0.02}
+          className="mb-16 block max-w-3xl font-display text-3xl font-extrabold leading-[1.05] tracking-[-0.02em]"
+        />
 
         <RevealGroup
           as="ul"
@@ -28,11 +35,8 @@ export function Powers() {
             const isLimitation = power.id === "long-night";
 
             return (
-              <RevealItem
-                as="li"
-                key={power.id}
-                className="group relative bg-raised p-8 transition-colors duration-300 hover:bg-elevated lg:p-10"
-              >
+              <RevealItem as="li" key={power.id} className="group relative h-full">
+                <TiltCard className="bg-raised p-8 transition-colors duration-300 group-hover:bg-elevated lg:p-10">
                 {/* Growth creeps in from the top edge on hover. Transform-only
                     (scaleX), so it stays on the compositor — no layout, no paint. */}
                 <span
@@ -63,6 +67,7 @@ export function Powers() {
                 </p>
 
                 <p className="mt-6 text-ink-muted">{power.body}</p>
+                </TiltCard>
               </RevealItem>
             );
           })}
