@@ -280,7 +280,8 @@ export function useChatEngine() {
           question,
           answer: raw.trim(),
           valid: false,
-          reason: result.message,
+          // hint steers the model; message is the human-facing fallback.
+          reason: result.hint ?? result.message,
           avoid: heroLines.current.slice(-4),
         });
         if (!alive.current) return;

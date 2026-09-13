@@ -23,7 +23,17 @@ export type ChatPhase =
 
 export type ValidationResult =
   | { ok: true; value: string }
-  | { ok: false; message: string };
+  | {
+      ok: false;
+      /** Shown to the visitor if the AI line can't be generated. Must read as
+       *  something Verdigris would actually say. */
+      message: string;
+      /** Steer for the model instead of the human. Separate field because the
+       *  two want different text: "That's a question, not a name" is a fine
+       *  thing to say to a person, but as an instruction it makes the model
+       *  re-ask without answering what they asked. */
+      hint?: string;
+    };
 
 export type Submission = VisitorData & {
   submittedAt: string;

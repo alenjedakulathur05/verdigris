@@ -34,6 +34,40 @@ export type ChatStep = {
  *  addresses and are a classic accessibility failure. */
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
+const QUESTION_WORD =
+  /^(who|what|when|where|why|how|which|will|would|can|could|should|shall|do|does|did|is|are|am|was|were|may|might|must|have|has|had)\b/i;
+
+/**
+ * Is this a question rather than an answer?
+ *
+ * Needed because a length check alone accepted "will my name be safe with u"
+ * as someone's NAME, stored it, and then asked "How old are you, will my name
+ * be safe with u?".
+ *
+ * The word-count condition matters: "Will" is a name, and rejecting it because
+ * it appears in the question-word list would be a worse bug than the one this
+ * fixes. A lone word is a name; a question word leading a sentence is a
+ * question.
+ */
+function looksLikeQuestion(value: string): boolean {
+  const trimmed = value.trim();
+  if (trimmed.endsWith("?")) return true;
+  return trimmed.split(/\s+/).length >= 3 && QUESTION_WORD.test(trimmed);
+}
+
+/** "my name is Aj" → "Aj". People answer conversationally; taking the whole
+ *  sentence literally is what makes a chatbot feel stupid. */
+function stripLeadIn(value: string): string {
+  return value
+    .replace(/^(hi|hey|hello|yo)[,!.\s]+/i, "")
+    .replace(
+      /^(my name is|my name's|i am|i'm|im|it is|it's|its|this is|call me|name is|name's|they call me)\s+/i,
+      "",
+    )
+    .replace(/[.!,]+$/, "")
+    .trim();
+}
+
 export const GREETING: string[] = [
   "You found it. Most people walk straight past this lot.",
   "I'm Verdigris. I deal with the things this city gave up on.",
@@ -46,9 +80,24 @@ export const steps: ChatStep[] = [
     placeholder: "Your name",
     autoComplete: "given-name",
     validate: (raw) => {
-      const value = raw.trim();
-      if (value.length < 2) return { ok: false, message: "I need something to call you." };
+      const input = raw.trim();
+      if (looksLikeQuestion(input)) {
+        return {
+          ok: false,
+          message: "That's a question, not a name.",
+          hint: "They asked you something instead of answering. Answer their question briefly and honestly first, then ask for their name again.",
+        };
+      }
+      const value = stripLeadIn(input);
+      if (value.length < 2) {
+        return { ok: false, message: "I need something to call you." };
+      }
       if (value.length > 60) return { ok: false, message: "Shorter than that." };
+      // A name is not a sentence. Without this, any short phrase becomes
+      // someone's name and then gets quoted back at them in the next question.
+      if (value.split(/\s+/).length > 4) {
+        return { ok: false, message: "Just a name, not a sentence." };
+      }
       return { ok: true, value };
     },
     ack: (value) => `${value}. Alright.`,
@@ -65,7 +114,15 @@ export const steps: ChatStep[] = [
       const value = raw.trim();
       const n = Number(value);
       if (!/^\d{1,3}$/.test(value) || !Number.isFinite(n)) {
-        return { ok: false, message: "That's not an age. Just the number." };
+        return {
+          ok: false,
+          message: "That's not an age. Just the number.",
+          ...(looksLikeQuestion(value)
+            ? {
+                hint: "They asked you something instead of answering. Answer their question briefly and honestly first, then ask for their age again.",
+              }
+            : {}),
+        };
       }
       if (n < 1 || n > 120) {
         return { ok: false, message: "Try an age you've actually been." };
@@ -82,9 +139,20 @@ export const steps: ChatStep[] = [
     placeholder: "City, or nearest one",
     autoComplete: "address-level2",
     validate: (raw) => {
-      const value = raw.trim();
+      const input = raw.trim();
+      if (looksLikeQuestion(input)) {
+        return {
+          ok: false,
+          message: "That's a question, not a place.",
+          hint: "They asked you something instead of answering. Answer their question briefly and honestly first, then ask where they are again.",
+        };
+      }
+      const value = stripLeadIn(input);
       if (value.length < 2) return { ok: false, message: "Somewhere. Anywhere." };
       if (value.length > 80) return { ok: false, message: "Just the city." };
+      if (value.split(/\s+/).length > 6) {
+        return { ok: false, message: "Just the city will do." };
+      }
       return { ok: true, value };
     },
     ack: () => "Right. Long way from my block, but distance was never the problem.",
@@ -98,11 +166,16 @@ export const steps: ChatStep[] = [
     inputMode: "email",
     autoComplete: "email",
     validate: (raw) => {
-      const value = raw.trim();
-      if (!EMAIL.test(value)) {
+      const input = raw.trim();
+      // Pull the address out of whatever they wrote. "you can reach me at
+      // aj@example.com" is a perfectly normal way to answer, and demanding a
+      // bare address is the kind of rigidity that makes chat feel like a form.
+      const found = input.match(/[^\s@]+@[^\s@]+\.[^\s@]{2,}/)?.[0];
+      const value = found?.replace(/[.,;:!?]+$/, "") ?? "";
+
+      if (!value || !EMAIL.test(value) || value.length > 254) {
         return { ok: false, message: "That won't reach you. Check it." };
       }
-      if (value.length > 254) return { ok: false, message: "That won't reach you. Check it." };
       return { ok: true, value };
     },
     ack: () => "Got it. I don't give it to anyone.",
