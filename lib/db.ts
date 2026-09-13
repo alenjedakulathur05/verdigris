@@ -115,3 +115,50 @@ export async function saveRequest(input: SaveInput): Promise<SaveResult> {
     return { ok: false, error };
   }
 }
+
+
+/**
+ * How many requests have been logged.
+ *
+ * Returns a COUNT and nothing else — never rows, never fields. That
+ * distinction is the entire security design of this function: the count is
+ * published to every visitor, while the grievances behind it are things people
+ * told Verdigris in confidence. A read endpoint that returns "14" is a
+ * feature; one that returns fourteen people's emails and problems is a breach,
+ * and the difference between them is one query.
+ *
+ * PostgREST returns the total in the Content-Range header when asked with
+ * `Prefer: count=exact`, so `limit=1` fetches the number without transferring
+ * the table.
+ */
+export async function countRequests(): Promise<number | null> {
+  const cfg = config();
+  if (!cfg) return null;
+
+  try {
+    const res = await fetch(`${cfg.url}/rest/v1/requests?select=id&limit=1`, {
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        apikey: cfg.key,
+        Authorization: `Bearer ${cfg.key}`,
+        Prefer: "count=exact",
+      },
+      // The route handler owns caching; this fetch must not add a second,
+      // longer-lived layer of its own or the number would go stale twice over.
+      cache: "no-store",
+    });
+
+    if (!res.ok) {
+      console.error("[verdigris] count failed:", res.status);
+      return null;
+    }
+
+    // "0-0/14"  →  14.   An empty table answers "*/0".
+    const total = res.headers.get("content-range")?.split("/")[1];
+    const n = Number(total);
+    return Number.isFinite(n) ? n : null;
+  } catch (cause) {
+    console.error("[verdigris] count threw:", String(cause));
+    return null;
+  }
+}

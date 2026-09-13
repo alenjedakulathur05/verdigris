@@ -4,6 +4,7 @@ import { Scramble } from "@/components/ui/Scramble";
 import { HeroFilm } from "@/components/ui/HeroFilm";
 import { HeroParallax } from "@/components/ui/HeroParallax";
 import { Magnetic } from "@/components/ui/Magnetic";
+import { RequestCount } from "@/components/ui/RequestCount";
 import { SplitText } from "@/components/ui/SplitText";
 import { ArrowDown } from "@/components/ui/Icons";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
@@ -105,7 +106,13 @@ export function Hero() {
             <span className="label-mono"><Scramble text="Signal open" /></span>
           </span>
 
-          <span className="label-mono hidden sm:inline"><Scramble text="District seven" /></span>
+          <span className="label-mono hidden sm:inline">
+            <Scramble text="District seven" />
+          </span>
+
+          {/* Read live from Postgres. Renders nothing until the number
+              arrives, so the strip never shows a placeholder zero. */}
+          <RequestCount />
 
           <span className="flex min-w-[10rem] flex-1 items-center gap-3">
             <span className="label-mono shrink-0">Reclaimed</span>
