@@ -6,6 +6,7 @@ import {
   VIEWPORT,
   fadeOnly,
   fadeUp,
+  riseIn3D,
   staggerParent,
   staggerParentSlow,
 } from "@/lib/motion";
@@ -92,16 +93,26 @@ export function RevealItem({
   children,
   className,
   as = "div",
+  weight = "text",
 }: {
   children: ReactNode;
   className?: string;
   as?: "div" | "li" | "p" | "span";
+  /** "text" rises 24px. "panel" rises further and rotates in 3D — for cards
+   *  and surfaces, never for prose. */
+  weight?: "text" | "panel";
 }) {
   const reduced = useReducedMotion();
   const MotionTag = motion[as] as typeof motion.div;
+  const variants = reduced ? fadeOnly : weight === "panel" ? riseIn3D : fadeUp;
 
   return (
-    <MotionTag className={className} variants={reduced ? fadeOnly : fadeUp}>
+    <MotionTag
+      className={className}
+      variants={variants}
+      // Per-element perspective; see the note on riseIn3D.
+      style={weight === "panel" && !reduced ? { transformPerspective: 1200 } : undefined}
+    >
       {children}
     </MotionTag>
   );

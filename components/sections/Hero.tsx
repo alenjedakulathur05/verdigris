@@ -1,4 +1,6 @@
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
+import { CountUp } from "@/components/ui/CountUp";
+import { Scramble } from "@/components/ui/Scramble";
 import { HeroFilm } from "@/components/ui/HeroFilm";
 import { HeroParallax } from "@/components/ui/HeroParallax";
 import { Magnetic } from "@/components/ui/Magnetic";
@@ -46,7 +48,7 @@ export function Hero() {
         <RevealGroup className="max-w-[36rem] lg:max-w-[52%]">
           <RevealItem as="p" className="label-mono mb-6 flex items-center gap-3">
             <span aria-hidden className="h-px w-8 bg-ember-700" />
-            Case file 001 — active
+            <Scramble text="Case file 001 — active" />
           </RevealItem>
 
           {/* Not inside RevealItem: SplitText runs its own entrance, and
@@ -100,10 +102,10 @@ export function Hero() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-ember-500 opacity-60" />
               <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-ember-500" />
             </span>
-            <span className="label-mono">Signal open</span>
+            <span className="label-mono"><Scramble text="Signal open" /></span>
           </span>
 
-          <span className="label-mono hidden sm:inline">District seven</span>
+          <span className="label-mono hidden sm:inline"><Scramble text="District seven" /></span>
 
           <span className="flex min-w-[10rem] flex-1 items-center gap-3">
             <span className="label-mono shrink-0">Reclaimed</span>
@@ -113,9 +115,11 @@ export function Hero() {
             {/* The one volt element above the fold. It is the only number on
                 the page, so it gets the loudest colour we own — and because
                 nothing near it is yellow, the eye goes straight there. */}
-            <span className="shrink-0 font-mono text-xs tabular-nums text-volt-400">
-              04%
-            </span>
+            <CountUp
+              to={4}
+              suffix="%"
+              className="shrink-0 font-mono text-xs text-volt-400"
+            />
           </span>
 
           <span className="label-mono ml-auto flex items-center gap-2">

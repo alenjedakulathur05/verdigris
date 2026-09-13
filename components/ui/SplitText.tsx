@@ -30,7 +30,7 @@ export function SplitText({
   delay = 0,
   stagger = 0.028,
   duration = 0.9,
-  once = true,
+  once = false,
 }: {
   text: string;
   as?: ElementType;
@@ -38,6 +38,9 @@ export function SplitText({
   delay?: number;
   stagger?: number;
   duration?: number;
+  /** Replays every time it re-enters view by default. A reveal that only
+   *  ever fires once is invisible to anyone who scrolls back up, which on a
+   *  page this short is most people. */
   once?: boolean;
 }) {
   const reduced = useReducedMotion();

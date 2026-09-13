@@ -76,4 +76,40 @@ export const staggerParentSlow: Variants = {
 
 /** Shared viewport config so every reveal triggers at the same point in the
  *  scroll. Inconsistent trigger points are a subtle but real tell. */
-export const VIEWPORT = { once: true, margin: "0px 0px -12% 0px" } as const;
+/**
+ * once:false — every reveal REPLAYS when it re-enters the viewport.
+ *
+ * The usual default is once:true, on the reasoning that repeating an animation
+ * is noise. On a page this short that reasoning is wrong: most visitors scroll
+ * back up at least once, and with once:true everything above them is already
+ * spent, so the page is inert on the way back. Replaying keeps it alive in
+ * both directions.
+ *
+ * The negative bottom margin means a reveal fires when the element is properly
+ * in frame rather than the instant one pixel of it appears.
+ */
+export const VIEWPORT = { once: false, margin: "0px 0px -12% 0px" } as const;
+
+/**
+ * The heavy entrance — for cards and panels, not for text.
+ *
+ * Travel, a 3D rotation and a scale together, which is far more than a
+ * paragraph should ever do. On a large surface it reads as the object being
+ * set down in front of you; on a line of prose the same values read as a
+ * website showing off. Which variant an element gets is a judgement about its
+ * WEIGHT, not about how much attention you want.
+ *
+ * transformPerspective is set per-element because these are laid out in a
+ * grid: perspective on the shared parent would give the row one vanishing
+ * point and the outer cards would visibly shear toward it.
+ */
+export const riseIn3D: Variants = {
+  hidden: { opacity: 0, y: 64, rotateX: 16, scale: 0.94 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    rotateX: 0,
+    scale: 1,
+    transition: { duration: 1, ease: EASE_BLOOM },
+  },
+};

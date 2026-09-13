@@ -1,6 +1,8 @@
 "use client";
 
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/Reveal";
+import { CountUp } from "@/components/ui/CountUp";
+import { Scramble } from "@/components/ui/Scramble";
 import { SplitText } from "@/components/ui/SplitText";
 import { TiltCard } from "@/components/ui/TiltCard";
 import { character } from "@/content/character";
@@ -12,7 +14,7 @@ export function Powers() {
     <section id="powers" className="section relative bg-base">
       <div className="container-page">
         <Reveal className="mb-6 max-w-3xl">
-          <p className="label-mono">{eyebrow}</p>
+          <p className="label-mono"><Scramble text={eyebrow} /></p>
         </Reveal>
         <SplitText
           as="h2"
@@ -35,7 +37,12 @@ export function Powers() {
             const isLimitation = power.id === "long-night";
 
             return (
-              <RevealItem as="li" key={power.id} className="group relative h-full">
+              <RevealItem
+                as="li"
+                key={power.id}
+                weight="panel"
+                className="group relative h-full"
+              >
                 <TiltCard className="bg-raised p-8 transition-colors duration-300 group-hover:bg-elevated lg:p-10">
                 {/* Growth creeps in from the top edge on hover. Transform-only
                     (scaleX), so it stays on the compositor — no layout, no paint. */}
@@ -51,7 +58,7 @@ export function Powers() {
                     isLimitation ? "text-volt-400" : "text-ember-500"
                   }`}
                 >
-                  {String(i + 1).padStart(2, "0")}
+                  <CountUp to={i + 1} duration={900 + i * 200} />
                 </span>
 
                 <h3 className="mt-6 font-display text-xl font-bold tracking-[-0.01em]">

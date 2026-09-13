@@ -1,6 +1,7 @@
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
 import { Magnetic } from "@/components/ui/Magnetic";
 import { Reveal } from "@/components/ui/Reveal";
+import { Scramble } from "@/components/ui/Scramble";
 import { SplitText } from "@/components/ui/SplitText";
 import { character } from "@/content/character";
 
@@ -23,7 +24,7 @@ export function Mission() {
 
       <div className="container-page relative">
         <Reveal className="mb-6 max-w-4xl">
-          <p className="label-mono">{eyebrow}</p>
+          <p className="label-mono"><Scramble text={eyebrow} /></p>
         </Reveal>
 
         <SplitText

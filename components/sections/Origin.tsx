@@ -3,6 +3,7 @@
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { useRef, useState } from "react";
 import { Reveal } from "@/components/ui/Reveal";
+import { Scramble } from "@/components/ui/Scramble";
 import { SplitText } from "@/components/ui/SplitText";
 import { character } from "@/content/character";
 
@@ -39,7 +40,9 @@ export function Origin() {
           <div className="lg:col-span-5">
             <div className="lg:sticky lg:top-32 lg:self-start">
               <Reveal>
-                <p className="label-mono mb-6">{eyebrow}</p>
+                <p className="label-mono mb-6">
+                  <Scramble text={eyebrow} />
+                </p>
               </Reveal>
               <SplitText
                 as="h2"
