@@ -67,15 +67,32 @@ function orderFor(kind: "reply" | "ack"): Provider[] {
 }
 
 /**
- * Models occasionally emit typographic characters that look like rendering
- * bugs in a chat bubble — non-breaking hyphens mid-word ("land‑lord"), narrow
- * no-break spaces. Also strips stray quote wrapping, which short completions
- * are prone to.
+ * Small fast models sometimes loop — "Please give me your age. Please give me
+ * your age." Drops any sentence already present in the line.
+ *
+ * Punctuation and case are ignored when comparing, so "Got it. Got it!"
+ * collapses too.
  */
+function dedupeSentences(text: string): string {
+  const parts = text.match(/[^.!?]+[.!?]*/g);
+  if (!parts) return text;
+
+  const seen: { part: string; norm: string }[] = [];
+  for (const raw of parts) {
+    const part = raw.trim();
+    if (!part) continue;
+    const norm = part.toLowerCase().replace(/[^a-z0-9 ]/g, "");
+    if (seen.some((p) => p.norm === norm)) continue;
+    seen.push({ part, norm });
+  }
+
+  return seen.map((p) => p.part).join(" ");
+}
+
 function sanitize(text: string): string {
-  return text
-    .replace(/[‐‑⁃]/g, "-")
-    .replace(/[   ]/g, " ")
+  return dedupeSentences(text)
+    .replace(/[\u2010\u2011\u2043]/g, "-") // exotic hyphens -> plain
+    .replace(/[\u00a0\u202f\u2009]/g, " ") // no-break / thin -> space
     // Short completions sometimes run sentences together ("Aj.Got it.").
     .replace(/([.!?])([A-Z])/g, "$1 $2")
     .replace(/\s+\n/g, "\n")
