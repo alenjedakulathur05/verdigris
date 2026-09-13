@@ -1,28 +1,24 @@
-import { SYSTEM_PROMPT, buildUserPrompt, type AiResult } from "@/lib/ai/prompt";
-import type { VisitorData } from "@/lib/types";
+import type { AiResult } from "@/lib/ai/prompt";
 
 /**
- * Groq provider (fallback).
+ * Groq provider.
  *
- * Kept as the second link in the chain rather than deleted: two independent
- * providers means a bad five minutes at one vendor doesn't drop the site to
- * its canned line.
+ * Fast — sub-second for short completions — which is why it leads for the
+ * per-turn conversational lines even though Gemini writes the better closing
+ * reply. Right model for the right job.
  */
 
 const ENDPOINT = "https://api.groq.com/openai/v1/chat/completions";
 
 /**
  * Verified against this account's /v1/models list rather than taken from
- * documentation — the Llama chat models are not served on this key at all,
+ * documentation: the Llama chat models are not served on this key at all,
  * which is why llama-3.3-70b-versatile and llama-3.1-8b-instant both 404'd.
- *
- * gpt-oss-20b over 120b deliberately: three sentences in a defined voice is
- * not a reasoning task, and the visitor is watching a typing indicator.
  */
 const MODEL = process.env.GROQ_MODEL ?? "openai/gpt-oss-20b";
 
-export async function generateWithGroq(
-  data: VisitorData,
+export async function completeWithGroq(
+  input: { system: string; user: string; maxTokens: number },
   signal?: AbortSignal,
 ): Promise<AiResult> {
   const apiKey = process.env.GROQ_API_KEY;
@@ -40,12 +36,12 @@ export async function generateWithGroq(
         model: MODEL,
         temperature: 0.8,
         // gpt-oss reasons before answering and both passes share this budget.
-        // A tight cap (180) starved the answer and returned empty completions.
-        max_tokens: 900,
+        // A tight cap starved the answer and returned empty completions.
+        max_tokens: input.maxTokens,
         ...(MODEL.includes("gpt-oss") ? { reasoning_effort: "low" } : {}),
         messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: buildUserPrompt(data) },
+          { role: "system", content: input.system },
+          { role: "user", content: input.user },
         ],
       }),
     });

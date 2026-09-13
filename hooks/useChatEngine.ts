@@ -8,12 +8,7 @@ import {
   SENDING_LINE,
   steps,
 } from "@/lib/chat-flow";
-import type {
-  ChatPhase,
-  Message,
-  StepId,
-  VisitorData,
-} from "@/lib/types";
+import type { ChatPhase, Message, StepId, VisitorData } from "@/lib/types";
 
 /* ────────────────────────────────────────────────────────────────────────
    State
@@ -100,17 +95,22 @@ function reducer(state: State, action: Action): State {
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * How long Verdigris "types" before a line appears.
- *
- * Proportional to length, with ±15% jitter. The jitter is the important part:
- * real typing has an inconsistent rhythm, and a perfectly uniform delay is the
- * single clearest tell that you're talking to a script. Capped so long lines
- * never feel like a hang.
+ * How long Verdigris "types" before a line appears. Proportional to length,
+ * with ±15% jitter — real typing has an inconsistent rhythm, and a perfectly
+ * uniform delay is the clearest tell that you're talking to a script.
  */
 const typingDelay = (text: string) => {
   const base = Math.min(1500, 380 + text.length * 18);
   return base * (0.85 + Math.random() * 0.3);
 };
+
+/**
+ * A generated line has already cost real time on the network, so subtract that
+ * from the simulated typing pause instead of adding to it. Otherwise the AI
+ * turns feel sluggish next to the scripted ones and the seam shows.
+ */
+const remainingDelay = (text: string, elapsedMs: number) =>
+  Math.max(180, typingDelay(text) - elapsedMs);
 
 /* ────────────────────────────────────────────────────────────────────────
    Engine
@@ -128,6 +128,14 @@ export function useChatEngine() {
    *  `state.data` from the render they started in. */
   const dataRef = useRef<Partial<VisitorData>>({});
   dataRef.current = state.data;
+  /** The question just asked, sent as context when generating the reaction. */
+  const lastQuestion = useRef<string>("");
+  /** Everything Verdigris has said. Sent with each request so the model stops
+   *  reaching for "Got it." every turn — it has no memory between calls. */
+  const heroLines = useRef<string[]>([]);
+  heroLines.current = state.messages
+    .filter((m) => m.author === "hero")
+    .map((m) => m.text);
 
   useEffect(() => {
     alive.current = true;
@@ -137,11 +145,13 @@ export function useChatEngine() {
   }, []);
 
   /** Say a sequence of lines with typing indicators between them. */
-  const speak = useCallback(async (lines: string[]) => {
+  const speak = useCallback(async (lines: string[], creditMs = 0) => {
+    let credit = creditMs;
     for (const line of lines) {
       if (!alive.current) return;
       dispatch({ type: "TYPING", value: true });
-      await wait(typingDelay(line));
+      await wait(remainingDelay(line, credit));
+      credit = 0;
       if (!alive.current) return;
       dispatch({ type: "TYPING", value: false });
       dispatch({ type: "HERO_SAYS", text: line });
@@ -149,11 +159,49 @@ export function useChatEngine() {
     }
   }, []);
 
+  /**
+   * Ask the server for an in-character reaction to what the visitor just said.
+   *
+   * Returns null on any failure — a timeout, a bad status, a provider outage.
+   * The caller then uses its written line, so a dead AI degrades the
+   * conversation's texture and nothing else. The visitor never sees an error.
+   */
+  const requestLine = useCallback(
+    async (payload: {
+      question: string;
+      answer: string;
+      valid: boolean;
+      reason?: string;
+      avoid?: string[];
+    }): Promise<string | null> => {
+      dispatch({ type: "TYPING", value: true });
+      try {
+        const res = await fetch("/api/turn", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          // Shorter than the server's own budget. If it hasn't answered by
+          // now, the scripted line is the better experience.
+          signal: AbortSignal.timeout(6000),
+        });
+        if (!res.ok) return null;
+        const json = (await res.json()) as { line?: string | null };
+        const line = json.line?.trim();
+        return line ? line : null;
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
   const askStep = useCallback(
     async (index: number) => {
       const step = steps[index];
       if (!step) return;
-      await speak(step.ask(dataRef.current));
+      const lines = step.ask(dataRef.current);
+      lastQuestion.current = lines.join(" ");
+      await speak(lines);
       if (!alive.current) return;
       dispatch({ type: "AWAIT_INPUT", value: true });
     },
@@ -170,8 +218,8 @@ export function useChatEngine() {
   }, [speak, askStep]);
 
   /** Sends the completed submission. The conversation must survive failure
-   *  here — a visitor who typed out something painful should never be met
-   *  with a silent dead end. */
+   *  here — someone who typed out something painful should never meet a
+   *  silent dead end. */
   const submit = useCallback(
     async (data: VisitorData) => {
       dispatch({ type: "PHASE", phase: "submitting" });
@@ -216,14 +264,28 @@ export function useChatEngine() {
       if (!step || !state.awaitingInput) return;
 
       const result = step.validate(raw);
+      const question = lastQuestion.current;
 
       if (!result.ok) {
         // Verdigris corrects you in character. A red "Invalid input" label
-        // would break the illusion the entire site exists to create.
+        // would break the illusion the whole site exists to create — and now
+        // the correction is generated, so asking "why do you need my age?"
+        // gets an actual answer instead of the same line repeated.
         dispatch({ type: "INPUT_ERROR", message: result.message });
         dispatch({ type: "VISITOR_SAYS", text: raw.trim() });
         dispatch({ type: "AWAIT_INPUT", value: false });
-        await speak([result.message]);
+
+        const t0 = Date.now();
+        const line = await requestLine({
+          question,
+          answer: raw.trim(),
+          valid: false,
+          reason: result.message,
+          avoid: heroLines.current.slice(-4),
+        });
+        if (!alive.current) return;
+
+        await speak([line ?? result.message], Date.now() - t0);
         if (!alive.current) return;
         dispatch({ type: "AWAIT_INPUT", value: true });
         return;
@@ -237,19 +299,40 @@ export function useChatEngine() {
       // answer ("How old are you, Aj?") before React has re-rendered.
       dataRef.current = { ...dataRef.current, [step.id]: result.value };
 
-      const acknowledgement = step.ack?.(result.value, dataRef.current);
-      if (acknowledgement) await speak([acknowledgement]);
-      if (!alive.current) return;
-
       const isLast = state.stepIndex === steps.length - 1;
+
+      // The final answer is the grievance itself: no small reaction, it goes
+      // straight to the closing message.
       if (isLast) {
         await submit(dataRef.current as VisitorData);
-      } else {
-        dispatch({ type: "NEXT_STEP" });
-        await askStep(state.stepIndex + 1);
+        return;
       }
+
+      const t0 = Date.now();
+      const line = await requestLine({
+        question,
+        answer: result.value,
+        valid: true,
+        avoid: heroLines.current.slice(-4),
+      });
+      if (!alive.current) return;
+
+      const acknowledgement = line ?? step.ack?.(result.value, dataRef.current);
+      if (acknowledgement) await speak([acknowledgement], Date.now() - t0);
+      if (!alive.current) return;
+
+      dispatch({ type: "NEXT_STEP" });
+      await askStep(state.stepIndex + 1);
     },
-    [state.stepIndex, state.awaitingInput, state.phase, speak, askStep, submit],
+    [
+      state.stepIndex,
+      state.awaitingInput,
+      state.phase,
+      speak,
+      askStep,
+      submit,
+      requestLine,
+    ],
   );
 
   const currentStep = steps[state.stepIndex] ?? null;

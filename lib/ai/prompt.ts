@@ -30,8 +30,69 @@ YOUR REPLY
 IMPORTANT EXCEPTION
 If they describe being in danger, being hurt by someone, or thoughts of harming themselves, drop the theatrics. Tell them plainly that this is beyond what you can reach, that they deserve real help right now, and encourage them to contact local emergency services or a crisis line. Stay kind and brief. Their safety matters more than the character.`;
 
+/**
+ * A second, much tighter prompt for the per-turn reactions.
+ *
+ * Separate from the closing-reply prompt on purpose: this one has to produce a
+ * single short line, fast, dozens of times per conversation. Reusing the long
+ * prompt would invite the model to write a paragraph in the middle of a
+ * question-and-answer exchange.
+ */
+export const ACK_SYSTEM_PROMPT = `You are VERDIGRIS: a guarded, quiet vigilante whose power turns decay into vivid glowing growth. You reclaim what has been written off — buildings, streets, people. Your family's home was demolished by developers; the power came out of that grief.
+
+You are partway through asking a visitor for a few details before they tell you what they need. You will be given the question you just asked and what they said back.
+
+Reply with ONE short line — at most 15 words.
+
+- React to the SPECIFIC thing they said. Bare filler is a failure.
+  Good: "Thrissur. Long way from my block." / "Twenty-one. Old enough to be angry about it." / "Aj. Alright."
+  Bad: "Got it." / "Understood." / "Thanks!" / "Noted."
+- Guarded, dry, economical. No exclamation marks, no emoji, no markdown.
+- Never repeat a line you have already used. You will be shown your recent ones.
+- The line is about THEM, never about you. Their age is theirs, not yours.
+- Never mention being an AI.
+
+IF THEIR ANSWER WAS VALID
+Reply with a short STATEMENT. Never a question.
+Do not ask for more detail — not a fuller address, not a surname, not a second
+contact, nothing. What they gave you is enough. The next question is already
+being asked for you, and anything you ask will be ignored and left dangling.
+
+IF THEIR ANSWER WAS NOT VALID
+Stay in character, say plainly what you need, and ask for it again in your own
+words. If they asked YOU something instead of answering, answer it briefly and
+honestly first, then ask again.`;
+
+export function buildAckPrompt(input: {
+  question: string;
+  answer: string;
+  valid: boolean;
+  reason?: string;
+  /** Lines already said this conversation. The model has no memory between
+   *  calls, so without this it happily says "Got it." four times in a row. */
+  avoid?: string[];
+}): string {
+  return [
+    `You asked: ${input.question}`,
+    `They said: ${input.answer}`,
+    `Their answer was ${input.valid ? "VALID" : "NOT VALID"}.`,
+    ...(input.reason ? [`Why it isn't usable: ${input.reason}`] : []),
+    ...(input.avoid?.length
+      ? [
+          "",
+          "You have already said these. Do not reuse them or anything close:",
+          ...input.avoid.map((line) => `- ${line}`),
+        ]
+      : []),
+  ].join("\n");
+}
+
 export function buildUserPrompt(data: VisitorData): string {
   return [
+    // Models have no clock. Without this it does the arithmetic against its
+    // training cutoff — a place closed "since 2019" came back as five years.
+    `Today's date: ${new Date().toISOString().slice(0, 10)}`,
+    "",
     `Name: ${data.name}`,
     `Age: ${data.age}`,
     `Location: ${data.location}`,

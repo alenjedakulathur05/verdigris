@@ -1,16 +1,15 @@
-import { SYSTEM_PROMPT, buildUserPrompt, type AiResult } from "@/lib/ai/prompt";
-import type { VisitorData } from "@/lib/types";
+import type { AiResult } from "@/lib/ai/prompt";
 
 /**
- * Google Gemini provider (primary).
+ * Google Gemini provider.
  *
- * Server-only. Plain fetch — this is one POST, and the official SDK would be
- * a dependency wrapping a single request.
+ * Server-only. Plain fetch — this is one POST, and the official SDK would be a
+ * dependency wrapping a single request.
  */
 
 /**
  * Model ids on hosted APIs are not stable. gemini-2.0-flash was retired and
- * the API told us so directly — "no longer available … use gemini-3.6-flash".
+ * the API said so directly — "no longer available … use gemini-3.6-flash".
  * That's why this is an env var and not a literal buried in the request.
  */
 const MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
@@ -20,9 +19,9 @@ const MODEL = process.env.GEMINI_MODEL ?? "gemini-3.6-flash";
  * reply blew past a 6s budget.
  *
  * The two generations spell this differently — 2.x takes a token budget
- * (thinkingBudget: 0 for none), and 3.x replaced it with a discrete
- * thinkingLevel. Sending 2.x's field to 3.6 returns a flat
- * "400 INVALID_ARGUMENT", so the shape has to match the generation.
+ * (thinkingBudget: 0 for none), 3.x replaced it with a discrete thinkingLevel.
+ * Sending 2.x's field to 3.6 returns a flat "400 INVALID_ARGUMENT", so the
+ * shape has to match the generation.
  */
 const THINKING_CONFIG = /gemini-3/.test(MODEL)
   ? { thinkingLevel: "low" }
@@ -31,8 +30,8 @@ const THINKING_CONFIG = /gemini-3/.test(MODEL)
 const endpoint = (model: string) =>
   `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-export async function generateWithGemini(
-  data: VisitorData,
+export async function completeWithGemini(
+  input: { system: string; user: string; maxTokens: number },
   signal?: AbortSignal,
 ): Promise<AiResult> {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -44,30 +43,26 @@ export async function generateWithGemini(
       signal,
       headers: {
         // The key goes in a HEADER, not the ?key= query parameter Google's
-        // quickstart shows. Query strings end up in server logs, proxy logs,
+        // quickstart shows. Query strings end up in server logs, proxy logs
         // and browser history — never put a secret in one.
         "x-goog-api-key": apiKey,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-        contents: [
-          { role: "user", parts: [{ text: buildUserPrompt(data) }] },
-        ],
+        systemInstruction: { parts: [{ text: input.system }] },
+        contents: [{ role: "user", parts: [{ text: input.user }] }],
         generationConfig: {
           temperature: 0.85,
-          // Deliberately generous. Recent Gemini models reason before
-          // answering and both passes draw on this budget — the same trap that
-          // made gpt-oss return empty completions under a tight cap. A 70-word
-          // reply needs nothing like this; the headroom is for the reasoning
-          // underneath it.
-          maxOutputTokens: 2000,
+          // Deliberately generous: recent models reason before answering and
+          // both passes draw on this budget. The headroom is for the reasoning
+          // underneath, not the reply itself.
+          maxOutputTokens: input.maxTokens,
           thinkingConfig: THINKING_CONFIG,
         },
-        // Verdigris receives messages about hardship and loss. The default
-        // filters can refuse ordinary accounts of grief or conflict, which
-        // would silently drop us to the fallback line exactly when someone has
-        // said something that matters. Loosened one step, not disabled.
+        // Verdigris receives messages about hardship and loss. Default filters
+        // can refuse ordinary accounts of grief or conflict, which would drop
+        // us to a canned line exactly when someone said something that matters.
+        // Loosened one step, not disabled.
         safetySettings: [
           "HARM_CATEGORY_HARASSMENT",
           "HARM_CATEGORY_HATE_SPEECH",
