@@ -102,7 +102,12 @@ export function HeroFilm() {
           loop
           playsInline
           preload="auto"
-          poster="/hero-poster.jpg"
+          /* WebP, not the JPEG. The poster attribute is the one image on the
+             site next/image cannot optimise — it is a raw URL the browser
+             fetches directly — so the format has to be chosen here. 124 KB
+             instead of 215 KB, on the element most likely to be the Largest
+             Contentful Paint. */
+          poster="/hero-poster.webp"
           className="hero-film h-full w-full object-cover"
         >
           <source src="/hero.webm" type="video/webm" />
