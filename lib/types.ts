@@ -17,9 +17,27 @@ export type Message = {
 export type ChatPhase =
   | "idle" // not started
   | "collecting" // working through the questions
+  | "review" // everything gathered, waiting for the visitor to confirm
   | "submitting" // sending to the server
   | "done" // delivered
   | "error"; // send failed, recoverable
+
+/**
+ * How urgent a request is.
+ *
+ * Assessed by the model from what the visitor described, then clamped
+ * server-side to this union — a model returning "VERY URGENT!!" must never
+ * become a database value. Ordered most to least severe; the order is load
+ * bearing, because it is what the inbox sorts on.
+ */
+export const PRIORITIES = ["critical", "high", "standard", "low"] as const;
+export type Priority = (typeof PRIORITIES)[number];
+
+export type Triage = {
+  priority: Priority;
+  /** One short clause explaining the call, for the email and the record. */
+  reason: string;
+};
 
 export type ValidationResult =
   | { ok: true; value: string }

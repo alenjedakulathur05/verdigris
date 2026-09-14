@@ -254,6 +254,11 @@ export const steps: ChatStep[] = [
 export const FALLBACK_REPLY =
   "I've got it. All of it. I'm going to sit with this tonight and then I'm going to do something about it — you'll hear from me at the address you gave me.";
 
+/** Said once everything is collected, before the visitor confirms. The
+ *  character reads it back rather than a UI announcing a "review step". */
+export const REVIEW_LINE =
+  "Let me read that back before I take it anywhere. Check it over — if it's right, send it to me.";
+
 export const SENDING_LINE = "Hold on. I'm writing this down.";
 
 export const ERROR_LINE =

@@ -1,4 +1,4 @@
-import type { VisitorData } from "@/lib/types";
+import type { Triage, VisitorData } from "@/lib/types";
 
 /**
  * Persistence — Supabase Postgres over its REST interface.
@@ -29,6 +29,7 @@ export type SaveInput = {
    *  you want to know whether a model wrote it at all. */
   provider: string;
   emailSent: boolean;
+  triage: Triage;
 };
 
 export type SaveResult = { ok: true; id: string } | { ok: false; error: string };
@@ -74,6 +75,8 @@ export async function saveRequest(input: SaveInput): Promise<SaveResult> {
     reply: input.reply,
     ai_provider: input.provider,
     email_sent: input.emailSent,
+    priority: input.triage.priority,
+    priority_reason: input.triage.reason,
     created_at: input.submittedAt.toISOString(),
   };
 

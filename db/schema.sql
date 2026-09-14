@@ -51,3 +51,26 @@ create index if not exists requests_created_at_idx
 -- Forgetting this line is the single most common way Supabase projects leak
 -- their users' data.
 alter table public.requests enable row level security;
+
+
+-- ── Triage ─────────────────────────────────────────────────────────
+-- Added after the first deploy, so these are written to be safe to run on a
+-- table that already has rows: existing requests get 'standard' rather than
+-- null. A nullable priority column would sort unpredictably, which on a queue
+-- ordered by urgency is worse than being wrong consistently.
+alter table public.requests
+  add column if not exists priority text not null default 'standard';
+alter table public.requests
+  add column if not exists priority_reason text;
+
+-- The model suggests a band; this constraint is what makes it a contract.
+alter table public.requests
+  drop constraint if exists requests_priority_valid;
+alter table public.requests
+  add constraint requests_priority_valid
+  check (priority in ('critical', 'high', 'standard', 'low'));
+
+-- The whole point of triage is reading the queue in urgency order, so the
+-- index matches the query: priority first, then newest within a band.
+create index if not exists requests_priority_idx
+  on public.requests (priority, created_at desc);

@@ -5,10 +5,17 @@ import {
   ERROR_LINE,
   FALLBACK_REPLY,
   GREETING,
+  REVIEW_LINE,
   SENDING_LINE,
   steps,
 } from "@/lib/chat-flow";
-import type { ChatPhase, Message, StepId, VisitorData } from "@/lib/types";
+import type {
+  ChatPhase,
+  Message,
+  StepId,
+  Triage,
+  VisitorData,
+} from "@/lib/types";
 
 /* ────────────────────────────────────────────────────────────────────────
    State
@@ -24,6 +31,8 @@ type State = {
   /** Locks the input while Verdigris is mid-sentence, so the visitor can't
    *  answer a question that hasn't finished being asked. */
   awaitingInput: boolean;
+  /** How the request was triaged. Null until the server answers. */
+  triage: Triage | null;
 };
 
 type Action =
@@ -35,7 +44,9 @@ type Action =
   | { type: "AWAIT_INPUT"; value: boolean }
   | { type: "INPUT_ERROR"; message: string | null }
   | { type: "NEXT_STEP" }
-  | { type: "PHASE"; phase: ChatPhase };
+  | { type: "PHASE"; phase: ChatPhase }
+  | { type: "TRIAGE"; triage: Triage }
+  | { type: "RESET" };
 
 const initialState: State = {
   phase: "idle",
@@ -45,6 +56,7 @@ const initialState: State = {
   isTyping: false,
   inputError: null,
   awaitingInput: false,
+  triage: null,
 };
 
 let messageSeq = 0;
@@ -83,6 +95,13 @@ function reducer(state: State, action: Action): State {
       return { ...state, stepIndex: state.stepIndex + 1 };
     case "PHASE":
       return { ...state, phase: action.phase };
+    case "TRIAGE":
+      return { ...state, triage: action.triage };
+    /* Back to a blank conversation. Returns initialState wholesale rather
+       than clearing fields one by one: a reset that forgets to reset something
+       is how you get a "new" request carrying the previous visitor's email. */
+    case "RESET":
+      return { ...initialState };
     default:
       return state;
   }
@@ -290,8 +309,22 @@ export function useChatEngine() {
 
         if (!res.ok) throw new Error(`Request failed: ${res.status}`);
 
-        const json: { reply?: string } = await res.json();
+        const json: {
+          reply?: string;
+          priority?: Triage["priority"];
+          priorityReason?: string;
+        } = await res.json();
         if (!alive.current) return;
+
+        if (json.priority) {
+          dispatch({
+            type: "TRIAGE",
+            triage: {
+              priority: json.priority,
+              reason: json.priorityReason ?? "",
+            },
+          });
+        }
 
         await speak([json.reply?.trim() || FALLBACK_REPLY]);
         dispatch({ type: "PHASE", phase: "done" });
@@ -457,10 +490,21 @@ export function useChatEngine() {
       // answer ("How old are you, Aj?") before React has re-rendered.
       dataRef.current = { ...dataRef.current, [step.id]: result.value };
 
-      // The final answer is the grievance itself: no small reaction, it goes
-      // straight to the closing message.
+      /**
+       * The final answer is the grievance. It does NOT send.
+       *
+       * Everything up to here was collected one question at a time, so nobody
+       * has seen the whole thing together. Submitting silently the moment
+       * someone finishes typing the hardest part — and giving them no chance
+       * to check the email address they will be contacted on — is the kind of
+       * thing that feels careless precisely when care matters most.
+       *
+       * So: pause, read it back, and let them press the button.
+       */
       if (isLastStep) {
-        await submit(dataRef.current as VisitorData);
+        await speak([REVIEW_LINE]);
+        if (!alive.current) return;
+        dispatch({ type: "PHASE", phase: "review" });
         return;
       }
 
@@ -493,6 +537,31 @@ export function useChatEngine() {
     ],
   );
 
+  /** The visitor pressed Submit on the review card. */
+  const confirm = useCallback(async () => {
+    if (state.phase !== "review") return;
+    await submit(dataRef.current as VisitorData);
+  }, [state.phase, submit]);
+
+  /**
+   * Start over with a blank conversation.
+   *
+   * dataRef is cleared alongside the reducer state because it is a ref — it
+   * survives re-renders by design, so a reset that only dispatched RESET would
+   * leave the previous visitor's answers sitting in it, and the next
+   * submission would send a mix of both.
+   */
+  const reset = useCallback(async () => {
+    dataRef.current = {};
+    heroLines.current = [];
+    lastQuestion.current = "";
+    attempts.current = 0;
+    dispatch({ type: "RESET" });
+    await speak(GREETING);
+    await askStep(0);
+    dispatch({ type: "PHASE", phase: "collecting" });
+  }, [speak, askStep]);
+
   const currentStep = steps[state.stepIndex] ?? null;
   const progress = Math.min(state.stepIndex / steps.length, 1);
 
@@ -502,6 +571,8 @@ export function useChatEngine() {
     progress,
     start,
     answer,
+    confirm,
+    reset,
     canType: state.awaitingInput && !state.isTyping,
   };
 }

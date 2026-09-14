@@ -6,11 +6,13 @@ import {
   buildExtractPrompt,
   type ExtractResult,
   SYSTEM_PROMPT,
+  TRIAGE_SYSTEM_PROMPT,
   buildAckPrompt,
+  buildTriagePrompt,
   buildUserPrompt,
   type AiResult,
 } from "@/lib/ai/prompt";
-import type { VisitorData } from "@/lib/types";
+import { PRIORITIES, type Priority, type Triage, type VisitorData } from "@/lib/types";
 
 export type { AiResult } from "@/lib/ai/prompt";
 
@@ -264,4 +266,52 @@ export async function extractAnswer(input: {
   }
 
   return { answered, value, reply };
+}
+
+
+/**
+ * Assess how urgent a request is.
+ *
+ * Never throws and never returns nothing: if the model is unavailable,
+ * unparseable, or answers with a band that does not exist, this falls back to
+ * "standard". A triage system that can fail open into a null priority would
+ * put the most urgent requests at the bottom of a sorted inbox — the exact
+ * opposite of what it exists to do. Degrading to "standard" is wrong but
+ * safe; degrading to nothing is dangerous.
+ */
+export async function classifyPriority(data: VisitorData): Promise<Triage> {
+  const fallback: Triage = { priority: "standard", reason: "not assessed" };
+
+  const result = await runChain(orderFor("reply"), {
+    system: TRIAGE_SYSTEM_PROMPT,
+    user: buildTriagePrompt(data),
+    maxTokens: 700,
+    json: true,
+  });
+
+  if (!result.reply) return fallback;
+
+  try {
+    const cleaned = result.reply
+      .replace(/^\`\`\`(?:json)?/i, "")
+      .replace(/\`\`\`$/, "")
+      .trim();
+    const parsed = JSON.parse(cleaned) as Record<string, unknown>;
+
+    const raw = String(parsed.priority ?? "").toLowerCase().trim();
+    // The clamp. Anything outside the union is discarded, not coerced.
+    const priority = (PRIORITIES as readonly string[]).includes(raw)
+      ? (raw as Priority)
+      : "standard";
+
+    const reason =
+      typeof parsed.reason === "string" && parsed.reason.trim()
+        ? sanitize(parsed.reason).slice(0, 120)
+        : fallback.reason;
+
+    return { priority, reason };
+  } catch {
+    console.warn("[verdigris] triage: unparseable JSON:", result.reply.slice(0, 160));
+    return fallback;
+  }
 }

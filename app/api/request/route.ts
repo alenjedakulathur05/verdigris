@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { generateReply } from "@/lib/ai";
+import { classifyPriority, generateReply } from "@/lib/ai";
+import type { AiResult } from "@/lib/ai";
 import { saveRequest } from "@/lib/db";
 import { FALLBACK_REPLY } from "@/lib/chat-flow";
 import { sendNotification } from "@/lib/email";
@@ -66,21 +67,36 @@ export async function POST(request: Request) {
 
   const submittedAt = new Date();
 
-  // Both start at once — the email doesn't wait on the model, and the model
-  // doesn't wait on the mail server. Sequentially this would be the sum of
-  // both latencies with the visitor watching a typing indicator.
-  const [emailResult, replyResult] = await Promise.allSettled([
-    sendNotification(data, submittedAt),
-    generateReply(data),
+  /**
+   * Triage FIRST, because the email depends on it.
+   *
+   * The priority goes in the subject line, so the notification cannot be sent
+   * until the band is known — these two genuinely are sequential and pretending
+   * otherwise would mean emailing first and then knowing how urgent it was.
+   *
+   * It runs concurrently with the closing reply instead, which needs nothing
+   * from it. classifyPriority never throws and never returns null, so there is
+   * no failure path to handle here: an unreachable model yields "standard".
+   */
+  const [triage, replyResult] = await Promise.all([
+    classifyPriority(data),
+    /* The return type is annotated, not inferred. Without it TypeScript widens
+       the union to "AiResult | {reply, error}" — and that second shape has no
+       `provider`, so reading ai.provider below stops compiling. Telling the
+       catch what it must produce keeps both branches the same shape. */
+    generateReply(data).catch(
+      (e: unknown): AiResult => ({ reply: null, error: String(e) }),
+    ),
   ]);
+
+  const emailResult = await Promise.allSettled([
+    sendNotification(data, submittedAt, triage),
+  ]).then((r) => r[0]);
 
   const emailSent =
     emailResult.status === "fulfilled" && emailResult.value === true;
 
-  const ai =
-    replyResult.status === "fulfilled"
-      ? replyResult.value
-      : { reply: null, error: String(replyResult.reason) };
+  const ai = replyResult;
 
   const reply = ai.reply ?? FALLBACK_REPLY;
 
@@ -105,6 +121,7 @@ export async function POST(request: Request) {
     reply,
     provider: ai.provider ?? "fallback",
     emailSent,
+    triage,
   });
 
   if (!saved.ok) {
@@ -130,6 +147,11 @@ export async function POST(request: Request) {
 
   return NextResponse.json({
     reply,
+    // Shown to the visitor so they can see how their request was classified —
+    // being told "this was logged as critical" is materially reassuring when
+    // you have just described something frightening.
+    priority: triage.priority,
+    priorityReason: triage.reason,
     // Development only. In production, leaking internal provider detail to the
     // client would be information disclosure.
     ...(process.env.NODE_ENV === "development"

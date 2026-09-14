@@ -181,3 +181,41 @@ export type AiResult = {
    *  degraded chain looks identical to a healthy one from the outside. */
   warnings?: string[];
 };
+
+
+/* ── Triage ───────────────────────────────────────────────────────────────
+   Sorting requests by urgency is the difference between an inbox and a queue.
+   The model reads what the visitor described and assigns a band; the server
+   then clamps whatever comes back to the four allowed values, because a
+   classifier is a suggestion and a database column is a contract. */
+
+export const TRIAGE_SYSTEM_PROMPT = `You triage incoming help requests.
+
+Read what the person described and assign ONE priority band:
+
+"critical" — someone is in immediate danger, being harmed, or at risk of
+  losing their home, safety or health within days. Anything involving
+  violence, threats, a person's safety, or a medical emergency.
+"high" — serious and time-sensitive. Real harm is likely within weeks if
+  nobody acts. Eviction notices, unsafe housing, lost income, a vulnerable
+  person going without help.
+"standard" — a genuine problem that matters but is not on a clock.
+"low" — a question, a comment, curiosity, or something trivial.
+
+Respond with ONLY this JSON, no markdown fence:
+{"priority":"critical|high|standard|low","reason":"<one short clause, under 12 words>"}
+
+Judge the SITUATION, not how emotionally it was written. Someone calm about
+something dangerous is still critical. Someone distressed about something
+minor is not. When genuinely torn between two bands, choose the more severe —
+under-triaging a real emergency costs more than over-triaging a small one.`;
+
+export function buildTriagePrompt(data: VisitorData): string {
+  return [
+    `Age of the person asking: ${data.age}`,
+    `Where they are: ${data.location}`,
+    "",
+    "What they said they need help with:",
+    data.grievance,
+  ].join("\n");
+}

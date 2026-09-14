@@ -466,33 +466,19 @@
    screen. */
 .chat-sheet {
   bottom: var(--kb, 0px);
-  height: min(62dvh, calc(100dvh - var(--kb, 0px) - 12px));
-  /* Snap between the two heights. Animating `height` is layout work, which is
-     normally worth avoiding — but this runs once per drag, for 0.4s, on a
-     panel with a short list inside it. The alternative (transform-scaling the
-     sheet) would distort the text while it moved. */
-  transition: height 420ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* Dragged up. Not 100dvh — the strip of page left visible at the top is what
-   keeps it reading as a sheet over the site rather than a new screen. */
-.chat-sheet--full {
+  /* One fixed height; the sheet is POSITIONED by transform, never resized.
+     That is the whole reason it now feels smooth: transforms run on the
+     compositor and can land on any sub-pixel value, so the sheet follows the
+     finger exactly. Animating `height` instead means a layout pass per frame
+     and only the handful of positions the snap points allow. */
   height: min(92dvh, calc(100dvh - var(--kb, 0px) - 12px));
 }
 
-/* DESKTOP — a docked panel, floated off the corner. Both states collapse to
-   the same geometry here: there is no sheet to expand. */
+/* DESKTOP — a docked panel, floated off the corner. */
 @media (min-width: 768px) {
-  .chat-sheet,
-  .chat-sheet--full {
+  .chat-sheet {
     bottom: calc(var(--kb, 0px) + 1.5rem);
     height: min(640px, calc(100dvh - 3rem));
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chat-sheet {
-    transition: none;
   }
 }
 
