@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { ChatPanel } from "@/components/chat/ChatPanel";
+import { Mark } from "@/components/ui/Mark";
 import { useChatEngine } from "@/hooks/useChatEngine";
 import { whenBooted } from "@/lib/boot";
 import { EASE_BLOOM } from "@/lib/motion";
@@ -98,9 +99,9 @@ export function ChatProvider({ children }: { children: ReactNode }) {
           >
             <span
               aria-hidden
-              className="grid h-8 w-8 place-items-center rounded-full bg-ember-900 font-display text-xs font-black text-ember-300"
+              className="grid h-8 w-8 place-items-center rounded-full bg-ember-900"
             >
-              V
+              <Mark size={15} className="text-ember-400" />
             </span>
             Continue
           </motion.button>

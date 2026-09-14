@@ -3,6 +3,7 @@
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { useState } from "react";
 import { ChatTrigger } from "@/components/chat/ChatTrigger";
+import { Mark } from "@/components/ui/Mark";
 import { useActiveSection } from "@/hooks/useActiveSection";
 import { EASE_BLOOM } from "@/lib/motion";
 
@@ -69,15 +70,13 @@ export function Header() {
             className="group flex items-center gap-2.5"
             aria-label="Verdigris — home"
           >
-            {/* The mark: a filled square being eaten by oxide. Cheaper and
-                more ownable than an icon-font logo, and it scales to any
-                size without a second asset. */}
-            <span
-              aria-hidden
-              className="relative block h-3.5 w-3.5 rotate-45 border border-ember-700"
-            >
-              <span className="absolute inset-[2px] bg-ember-500 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.35]" />
-            </span>
+            {/* One SVG shared by the header, the chat avatar and the browser
+                tab, so the mark is identical everywhere rather than three
+                near-misses. */}
+            <Mark
+              size={20}
+              className="text-ember-500 transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:rotate-[18deg]"
+            />
             <span className="font-display text-sm font-black tracking-[0.22em] text-ink">
               VERDIGRIS
             </span>

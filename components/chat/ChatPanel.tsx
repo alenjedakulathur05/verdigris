@@ -12,6 +12,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import { PriorityBadge } from "@/components/chat/PriorityBadge";
 import { ReviewCard } from "@/components/chat/ReviewCard";
 import { Check, Close } from "@/components/ui/Icons";
+import { Mark } from "@/components/ui/Mark";
 import { EASE_BLOOM } from "@/lib/motion";
 import type { useChatEngine } from "@/hooks/useChatEngine";
 
@@ -196,9 +197,9 @@ export function ChatPanel({
       <header className="flex items-center gap-3 border-b border-line-subtle px-4 py-3 md:pt-3">
         <span
           aria-hidden
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-ember-700 bg-ember-900 font-display text-sm font-black text-ember-300"
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-ember-700 bg-ember-900"
         >
-          V
+          <Mark size={17} className="text-ember-400" />
         </span>
 
         <div className="min-w-0 flex-1">
