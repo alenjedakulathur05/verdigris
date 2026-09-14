@@ -1,6 +1,7 @@
 import { Hero } from "@/components/sections/Hero";
 import { Mission } from "@/components/sections/Mission";
 import { Origin } from "@/components/sections/Origin";
+import { CaseLog } from "@/components/sections/CaseLog";
 import { Powers } from "@/components/sections/Powers";
 import { Marquee } from "@/components/ui/Marquee";
 
@@ -32,6 +33,8 @@ export default function Home() {
       <div className="border-y border-line-subtle bg-base py-6 font-display text-[clamp(2rem,7vw,5.5rem)] font-black uppercase leading-none tracking-[-0.03em] text-ember-900">
         <Marquee text="DISTRICT SEVEN · CASE FILE 001 · ACTIVE ·" baseVelocity={3.4} />
       </div>
+
+      <CaseLog />
 
       <Mission />
     </main>

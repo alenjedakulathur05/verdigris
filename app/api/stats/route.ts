@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { countRequests } from "@/lib/db";
+import { getStats } from "@/lib/db";
 
 /**
  * Public read endpoint — one number.
@@ -22,10 +22,13 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const count = await countRequests();
+  const stats = await getStats();
 
   return NextResponse.json(
-    { count },
+    // `count` is kept alongside `stats` so the existing hero counter keeps
+    // working — changing a response shape that something already consumes is
+    // how you break two things while fixing one.
+    { count: stats?.total ?? null, stats },
     {
       headers: {
         /* Cached at Vercel's edge for a minute, and served stale for five

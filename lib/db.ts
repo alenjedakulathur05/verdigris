@@ -1,4 +1,4 @@
-import type { Triage, VisitorData } from "@/lib/types";
+import { PRIORITIES, type Priority, type Triage, type VisitorData } from "@/lib/types";
 
 /**
  * Persistence — Supabase Postgres over its REST interface.
@@ -162,6 +162,69 @@ export async function countRequests(): Promise<number | null> {
     return Number.isFinite(n) ? n : null;
   } catch (cause) {
     console.error("[verdigris] count threw:", String(cause));
+    return null;
+  }
+}
+
+
+export type Stats = {
+  total: number;
+  byPriority: Record<Priority, number>;
+};
+
+/** One count, via the Content-Range header. `limit=1` fetches the number
+ *  without transferring the table. */
+async function countWhere(
+  cfg: { url: string; key: string },
+  filter = "",
+): Promise<number> {
+  const res = await fetch(
+    `${cfg.url}/rest/v1/requests?select=id&limit=1${filter}`,
+    {
+      signal: AbortSignal.timeout(6000),
+      headers: {
+        apikey: cfg.key,
+        Authorization: `Bearer ${cfg.key}`,
+        Prefer: "count=exact",
+      },
+      cache: "no-store",
+    },
+  );
+  if (!res.ok) throw new Error(`count ${res.status}`);
+  const n = Number(res.headers.get("content-range")?.split("/")[1]);
+  return Number.isFinite(n) ? n : 0;
+}
+
+/**
+ * Counts only — the total and the split by triage band.
+ *
+ * Still returns no rows, ever. The distinction that matters: "11 requests, 2
+ * of them critical" is a statistic; the eleven accounts behind it are things
+ * people said in confidence. This function is built so the second can never
+ * come back even by accident, because there is no code path that asks for it.
+ *
+ * Five parallel counts rather than a GROUP BY because PostgREST has no
+ * grouping — and at this size five cached counts are cheaper than adding a
+ * database function to maintain.
+ */
+export async function getStats(): Promise<Stats | null> {
+  const cfg = config();
+  if (!cfg) return null;
+
+  try {
+    const [total, ...bands] = await Promise.all([
+      countWhere(cfg),
+      ...PRIORITIES.map((p) => countWhere(cfg, `&priority=eq.${p}`)),
+    ]);
+
+    const byPriority = {} as Record<Priority, number>;
+    PRIORITIES.forEach((p, i) => {
+      byPriority[p] = bands[i] ?? 0;
+    });
+
+    return { total, byPriority };
+  } catch (cause) {
+    console.error("[verdigris] stats failed:", String(cause));
     return null;
   }
 }
