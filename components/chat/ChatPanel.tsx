@@ -27,6 +27,55 @@ export function ChatPanel({
 }) {
   const listRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  /** Is the reader at the bottom of the conversation? See the effect below. */
+  const pinned = useRef(true);
+
+  /**
+   * Keep the newest message in view.
+   *
+   * The obvious version — set scrollTop on every new message — is not enough
+   * here, and this was a real bug: bubbles animate in, the typing indicator
+   * appears and disappears, and the sheet itself can be resized by dragging.
+   * All of those change the content height AFTER React has finished
+   * rendering, so a one-shot scroll fires against a height that is still
+   * growing and lands short. New replies ended up below the fold.
+   *
+   * A ResizeObserver watches the actual rendered height instead and follows it
+   * however it changes, whatever caused it.
+   *
+   * The `pinned` ref is the other half. Blindly scrolling to the bottom would
+   * yank the view away from someone who deliberately scrolled up to re-read
+   * something. So: follow only while they are already at the bottom, and stop
+   * the moment they scroll away.
+   */
+  useEffect(() => {
+    const el = listRef.current;
+    if (!el) return;
+
+    const atBottom = () =>
+      el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+
+    const onScroll = () => {
+      pinned.current = atBottom();
+    };
+
+    const follow = () => {
+      if (pinned.current) el.scrollTop = el.scrollHeight;
+    };
+
+    el.addEventListener("scroll", onScroll, { passive: true });
+    const ro = new ResizeObserver(follow);
+    // Observe the CONTENT, not the container: the container's own height
+    // barely changes, while the content grows with every message.
+    Array.from(el.children).forEach((c) => ro.observe(c));
+    ro.observe(el);
+    follow();
+
+    return () => {
+      el.removeEventListener("scroll", onScroll);
+      ro.disconnect();
+    };
+  }, [engine.messages.length]);
 
   /**
    * Sheet state, phone only.
@@ -242,6 +291,19 @@ export function ChatPanel({
         // interrupting whatever the screen reader is currently saying.
         aria-live="polite"
         aria-atomic="false"
+        /**
+         * Opt this container out of Lenis.
+         *
+         * Lenis takes over wheel events for the whole document to smooth the
+         * page scroll — which also swallows them before they reach any nested
+         * scroller. The conversation simply would not scroll on desktop, while
+         * working fine on touch, because Lenis is desktop-only.
+         *
+         * `data-lenis-prevent` tells it to leave this subtree alone. Any
+         * scrollable region added inside the site needs the same attribute;
+         * it is the standard cost of smooth scrolling.
+         */
+        data-lenis-prevent
         className="flex-1 space-y-3 overflow-y-auto overscroll-contain p-4"
       >
         {engine.messages.map((m) => (

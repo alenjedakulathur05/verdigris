@@ -61,7 +61,12 @@ export function ReviewCard({
             {/* Capped and scrollable: a long account would otherwise push the
                 Submit button off the bottom of the sheet, which is the one
                 control this screen exists for. */}
-            <p className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap text-sm text-ink-muted">
+            {/* Same Lenis opt-out as the message list — a long account is
+                scrollable here too, and without this the wheel does nothing. */}
+            <p
+              data-lenis-prevent
+              className="mt-1 max-h-28 overflow-y-auto whitespace-pre-wrap text-sm text-ink-muted"
+            >
               {data.grievance}
             </p>
           </div>
