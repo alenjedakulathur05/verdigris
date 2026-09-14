@@ -126,13 +126,29 @@ export function CaseLog() {
                         {stats ? <CountUp to={n} pad={2} duration={1400} /> : "00"}
                       </span>
                     </div>
-                    {/* scaleX, not width — transform stays on the compositor. */}
+                    {/* scaleX, not width — transform stays on the compositor.
+
+                        `animate`, NOT `whileInView`, and that distinction was a
+                        real bug: whileInView resolves its target the moment the
+                        element enters view, which here was BEFORE the stats
+                        fetch returned. Every bar locked in a target of zero and
+                        stayed invisible, because the viewport state never
+                        changed again to trigger a re-evaluation.
+
+                        With `animate` the target is bound to the data, so the
+                        bars grow the moment the numbers arrive — which reads
+                        better anyway: the figures and their bars move
+                        together. */}
                     <div className="h-[3px] w-full overflow-hidden bg-line-subtle">
                       <motion.div
                         className={`h-full origin-left ${BAR[p]}`}
                         initial={reduced ? false : { scaleX: 0 }}
-                        whileInView={{ scaleX: Math.max(pct / 100, n > 0 ? 0.02 : 0) }}
-                        viewport={{ once: false, margin: "0px 0px -15% 0px" }}
+                        animate={{
+                          // A nonzero band always shows a sliver, so "1 of 40"
+                          // is visibly present rather than indistinguishable
+                          // from zero.
+                          scaleX: Math.max(pct / 100, n > 0 ? 0.02 : 0),
+                        }}
                         transition={{
                           duration: 1.1,
                           ease: EASE_BLOOM,
