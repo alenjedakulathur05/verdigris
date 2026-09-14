@@ -1,13 +1,12 @@
 "use client";
 
+import { AnimatePresence, motion, useMotionValue } from "framer-motion";
 import {
-  AnimatePresence,
-  motion,
-  useDragControls,
-  useMotionValue,
-} from "framer-motion";
-import type { PanInfo } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+  useEffect,
+  useRef,
+  useState,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { Bubble, TypingIndicator } from "@/components/chat/Bubble";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { PriorityBadge } from "@/components/chat/PriorityBadge";
@@ -37,23 +36,31 @@ export function ChatPanel({
    * the whole thing shut instead. The gesture belongs to the handle alone.
    */
   const [isPhone, setIsPhone] = useState(false);
-  const dragControls = useDragControls();
-  const dragged = useRef(false);
-  /** How far down the sheet may travel before it counts as dismissed. Measured
-   *  from the panel itself so it adapts to whatever height the CSS gave it. */
-  const [maxDrag, setMaxDrag] = useState(0);
+
   /**
-   * Vertical position of the sheet, as a MotionValue rather than component
-   * state.
+   * The sheet's VISIBLE HEIGHT, in pixels, as a MotionValue.
    *
-   * This is deliberate and load-bearing: the drag writes straight into it
-   * outside React, so following the finger costs no re-renders. It also means
-   * the position is NOT an animation target — if `y` were on the `animate`
-   * prop, every new chat message would re-render the panel and spring the
-   * sheet back to its resting place mid-conversation.
+   * This is the second attempt and the reason for the rewrite is worth
+   * recording. The first version kept the panel at a fixed 92dvh and slid it
+   * down with a transform. That felt smooth, but it pushed the bottom third of
+   * the panel — which is where the text input lives — off the bottom of the
+   * screen. Half-open meant you could read the conversation and had nowhere to
+   * reply.
+   *
+   * Driving height instead means the visible box IS the panel: the flex column
+   * lays out header, messages, input inside whatever height it currently has,
+   * so the input sits at the bottom of the sheet at every size.
+   *
+   * A MotionValue rather than state because the drag writes to it on every
+   * pointer event. Through useState that would be a re-render per frame; this
+   * writes straight to style.height and never re-renders at all.
    */
-  const y = useMotionValue(0);
-  const placed = useRef(false);
+  const height = useMotionValue(0);
+  const bounds = useRef({ min: 168, max: 0 });
+  /** A drag ends with a pointerup, which the browser also reports as a click.
+   *  Without this flag, every drag of the handle would also fire its tap
+   *  action and close the sheet the moment you finished resizing it. */
+  const dragged = useRef(false);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 767px)");
@@ -64,99 +71,69 @@ export function ChatPanel({
   }, []);
 
   /**
-   * Measure the sheet so the drag has real bounds.
+   * Set the resting height and the limits it can be dragged between.
    *
-   * The travel is (panel height − the strip that must stay on screen), read
-   * from the element rather than hardcoded, so it stays correct on every
-   * screen size and when the keyboard changes the height.
+   * 62% of the viewport at rest, so the hero stays visible above it. The
+   * minimum is just enough for the header, the handle and the input — the
+   * sheet may be dragged small, but never so small that you cannot reply.
    */
   useEffect(() => {
     if (!isPhone) return;
-    const el = panelRef.current;
-    if (!el) return;
-    const measure = () => {
-      const h = el.offsetHeight;
-      // Leave 120px on screen at the furthest-down position, so there is
-      // always something to grab and it never disappears entirely.
-      setMaxDrag(Math.max(0, h - 120));
-      // Rest so that ~62% of the viewport is covered — the sheet is 92dvh
-      // tall, so it starts pushed down by the difference. Applied once; after
-      // that the position belongs to the visitor.
-      if (!placed.current) {
-        placed.current = true;
-        y.set(Math.max(0, h - window.innerHeight * 0.62));
-      }
+    const apply = () => {
+      const vh = window.innerHeight;
+      bounds.current = { min: 168, max: Math.round(vh * 0.92) };
+      if (height.get() === 0) height.set(Math.round(vh * 0.62));
+      // A rotation or a keyboard can make the current height illegal.
+      height.set(
+        Math.min(bounds.current.max, Math.max(bounds.current.min, height.get())),
+      );
     };
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [isPhone]);
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, [isPhone, height]);
 
   /**
-   * Where the drag ends up: exactly where it was let go.
+   * The drag, done by hand rather than with Framer's `drag`.
    *
-   * The earlier version snapped between two fixed heights, which is why it
-   * felt stiff — the sheet argued with the finger instead of following it.
-   * Now `y` is free within its bounds and nothing springs it anywhere, so
-   * releasing at 40% leaves it at 40%.
+   * Framer's drag moves x/y — it cannot animate height, which is precisely
+   * what has to change here. Twenty lines of pointer events is the honest
+   * trade, and it buys exact control over the two things that were wrong
+   * before: it follows the finger 1:1 and it stops dead on release, because
+   * nothing is animating it afterwards.
    *
-   * The only decision left is dismissal, and that checks velocity as well as
-   * distance because they are different intentions: a short fast flick means
-   * "get rid of this", a slow drag means "put it here". Distance alone makes
-   * flicks feel ignored; velocity alone makes careful drags twitchy.
+   * `raw` is tracked unclamped so an extra pull past the minimum can be read
+   * as "close this" — a gesture the clamped height could never express, since
+   * it stops moving at the limit.
    */
-  function onDragEnd(_: unknown, info: PanInfo) {
-    dragged.current = true;
-    const pulledFar = info.offset.y > 0 && info.point.y > 0 && info.offset.y > maxDrag * 0.55;
-    if (info.velocity.y > 900 || pulledFar) onClose();
+  function startDrag(e: ReactPointerEvent<HTMLButtonElement>) {
+    if (!isPhone) return;
+    const startY = e.clientY;
+    const startH = height.get();
+    let raw = startH;
+
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+
+    const move = (ev: PointerEvent) => {
+      dragged.current = true;
+      raw = startH - (ev.clientY - startY);
+      height.set(
+        Math.min(bounds.current.max, Math.max(bounds.current.min, raw)),
+      );
+    };
+
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      window.removeEventListener("pointercancel", up);
+      // Pulled well past the smallest useful size — they want it gone.
+      if (raw < bounds.current.min - 70) onClose();
+    };
+
+    window.addEventListener("pointermove", move, { passive: true });
+    window.addEventListener("pointerup", up);
+    window.addEventListener("pointercancel", up);
   }
-
-  // Follow the conversation as it grows.
-  useEffect(() => {
-    const el = listRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
-  }, [engine.messages.length, engine.isTyping]);
-
-  // Escape closes — expected of anything dialog-shaped.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
-  /**
-   * The mobile keyboard problem.
-   *
-   * On iOS Safari a `position: fixed` full-screen panel does NOT shrink when
-   * the keyboard opens — the layout viewport stays the same size and the
-   * keyboard simply covers the bottom of it, hiding the input the user is
-   * typing into. visualViewport reports the *actually visible* region, so we
-   * lift the panel by the difference.
-   *
-   * Most submissions will break here, and it's the first thing anyone testing
-   * on a phone will hit.
-   */
-  useEffect(() => {
-    const vv = window.visualViewport;
-    const el = panelRef.current;
-    if (!vv || !el) return;
-
-    const sync = () => {
-      const covered = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      el.style.setProperty("--kb", `${covered}px`);
-    };
-
-    sync();
-    vv.addEventListener("resize", sync);
-    vv.addEventListener("scroll", sync);
-    return () => {
-      vv.removeEventListener("resize", sync);
-      vv.removeEventListener("scroll", sync);
-    };
-  }, []);
 
   const isFinished = engine.phase === "done";
 
@@ -171,27 +148,10 @@ export function ChatPanel({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.99 }}
       transition={{ duration: 0.45, ease: EASE_BLOOM }}
-      style={{ y }}
-      /* Drag is phone-only and starts from the handle. Constraints of 0/0 with
-         elastic give it resistance and spring it back to rest; the snap
-         between heights is CSS, not this. */
-      drag={isPhone ? "y" : false}
-      dragListener={false}
-      onDragStart={() => {
-        dragged.current = true;
-      }}
-      dragControls={dragControls}
-      /* Bounds, not snap points. top:0 is fully open, bottom is as far down as
-         it may go before dismissing. */
-      dragConstraints={{ top: 0, bottom: maxDrag }}
-      /* dragMomentum={false} is what makes it stop dead where you let go —
-         with momentum on, the sheet keeps coasting after your finger lifts,
-         which is exactly the "it doesn't stop where I left it" problem.
-         dragElastic 0 removes the rubber-band fight at the edges. */
-      dragMomentum={false}
-      dragElastic={0}
-      dragTransition={{ power: 0, timeConstant: 0 }}
-      onDragEnd={onDragEnd}
+      /* Inline height on phones ONLY. On desktop the md: rule in globals.css
+         owns the geometry, and an inline style would beat it with no way to
+         override. */
+      style={isPhone ? { height } : undefined}
       className={[
         // Mobile: a bottom sheet. Height and offset come from .chat-sheet in
         // globals.css so they can respond to both the breakpoint and the
@@ -214,7 +174,7 @@ export function ChatPanel({
           scrolling the page while the finger is on it. */}
       <button
         type="button"
-        onPointerDown={(e) => isPhone && dragControls.start(e)}
+        onPointerDown={startDrag}
         onClick={() => {
           // Swallow the synthetic click that follows a drag — a drag ends with
           // a pointerup, which the browser also reports as a click. Without

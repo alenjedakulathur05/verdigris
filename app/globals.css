@@ -466,12 +466,12 @@
    screen. */
 .chat-sheet {
   bottom: var(--kb, 0px);
-  /* One fixed height; the sheet is POSITIONED by transform, never resized.
-     That is the whole reason it now feels smooth: transforms run on the
-     compositor and can land on any sub-pixel value, so the sheet follows the
-     finger exactly. Animating `height` instead means a layout pass per frame
-     and only the handful of positions the snap points allow. */
-  height: min(92dvh, calc(100dvh - var(--kb, 0px) - 12px));
+  /* MOBILE height is set inline from JS (see ChatPanel) because the drag
+     writes it on every pointer event. This is only the fallback for the first
+     paint, before the measurement effect runs — without it the sheet would
+     flash at zero height. */
+  height: 62dvh;
+  max-height: calc(100dvh - var(--kb, 0px) - 12px);
 }
 
 /* DESKTOP — a docked panel, floated off the corner. */
